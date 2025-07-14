@@ -2,6 +2,7 @@ import com.itextpdf.text.Document;
 import com.itextpdf.text.Element;
 import com.itextpdf.text.FontFactory;
 import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
 
@@ -47,7 +48,7 @@ public class PDFCreator {
             doc.add(new Paragraph("Période : " + sdf.format(fromDate) + " – " + sdf.format(toDate)));
             doc.add(new Paragraph(" "));
 
-            // 📋 Invoice table in PDF
+            // 📋 Invoice table
             PdfPTable pdfTable = new PdfPTable(4);
             pdfTable.setWidths(new int[]{3, 2, 2, 2});
             pdfTable.addCell("Prestation");
@@ -63,10 +64,22 @@ public class PDFCreator {
                 pdfTable.addCell(InvoiceApp.model.getValueAt(i, 3).toString());
                 subTotal += Double.parseDouble(InvoiceApp.model.getValueAt(i, 3).toString());
             }
+
+            // ➕ Add subtotal row directly in table, aligned under "Total (€)"
+            pdfTable.addCell(""); // empty cell under "Prestation"
+            pdfTable.addCell(""); // empty cell under "Tarif (€)"
+            PdfPCell labelCell = new PdfPCell(new Paragraph("Sous Total"));
+            labelCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            pdfTable.addCell(labelCell); // label under "Quantité"
+
+            PdfPCell valueCell = new PdfPCell(new Paragraph(subTotal + " €"));
+            valueCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            pdfTable.addCell(valueCell); // value under "Total (€)"
+
             doc.add(pdfTable);
 
-            // 🧾 Footer notes
-            doc.add(new Paragraph("Sous Total: " + subTotal + " €"));
+            // 📄 Footer notes
+            doc.add(new Paragraph(" "));
             doc.add(new Paragraph("TVA non applicable (article 293B du CGI)"));
             doc.add(new Paragraph("Fait à Balma - " + java.time.LocalDate.now()));
 
