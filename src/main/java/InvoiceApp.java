@@ -151,20 +151,25 @@ public class InvoiceApp {
     /**
      * Load data from bill_main for the selected company and date range.
      */
-    private static void loadData() {
-        model.setRowCount(0);  // 🧹 Clear table
 
+
+    private static void loadData() {
+        // Clear previous table data
+        model.setRowCount(0);
+
+        // Get selected company and date range
         String company = (String) companyComboBox.getSelectedItem();
         Date fromDate  = ((SpinnerDateModel) fromDateSpinner.getModel()).getDate();
         Date toDate    = ((SpinnerDateModel) toDateSpinner.getModel()).getDate();
 
-        // 1️⃣ Lookup rate info for this client
+        // Queries
         String rateSql = "SELECT client_rate, client_rate_per_day, idclient_main FROM client_main WHERE client_name = ?";
         String billSql = "SELECT service_rendered, UnitDay, workedDayOrHours FROM bill_main WHERE client_id = ? AND date_worked BETWEEN ? AND ?";
 
         try (Connection conn = MySQLConnector.getConnection();
              PreparedStatement psRate = conn.prepareStatement(rateSql)) {
 
+            // Step 1: Get rate info and client ID
             psRate.setString(1, company);
             double rate, ratePerDay;
             int clientId;
@@ -174,35 +179,62 @@ public class InvoiceApp {
                     JOptionPane.showMessageDialog(null, "No rate info for " + company);
                     return;
                 }
-                rate = rs.getDouble("client_rate");
-                ratePerDay = rs.getDouble("client_rate_per_day");
-                clientId = rs.getInt("idclient_main");
+                rate        = rs.getDouble("client_rate");
+                ratePerDay  = rs.getDouble("client_rate_per_day");
+                clientId    = rs.getInt("idclient_main");
             }
 
-            // 2️⃣ Fetch billable entries for that client
+            // Step 2: Get bill entries in date range
             try (PreparedStatement psBill = conn.prepareStatement(billSql)) {
                 psBill.setInt(1, clientId);
                 psBill.setTimestamp(2, new Timestamp(fromDate.getTime()));
                 psBill.setTimestamp(3, new Timestamp(toDate.getTime()));
 
                 try (ResultSet rs2 = psBill.executeQuery()) {
+                    boolean anyRows = false;
+
                     while (rs2.next()) {
+                        anyRows = true;
+
                         String service = rs2.getString("service_rendered");
                         int unitDay    = rs2.getInt("UnitDay");
                         int qty        = rs2.getInt("workedDayOrHours");
                         double tarif   = (unitDay == 1) ? ratePerDay : rate;
+                        double total   = tarif * qty;
 
-                        // ✅ Add row dynamically
-                        model.addRow(new Object[]{service, tarif, qty, tarif * qty});
+                        // Show debug popup
+                        SwingUtilities.invokeLater(() -> {
+                            JOptionPane.showMessageDialog(null,
+                                    "Service: " + service +
+                                            "\nTarif: " + tarif +
+                                            "\nQuantité: " + qty +
+                                            "\nTotal: " + total,
+                                    "Loaded Row",
+                                    JOptionPane.INFORMATION_MESSAGE
+                            );
+                        });
+
+                        // Add to invoice table
+                        model.addRow(new Object[]{service, tarif, qty, total});
+                    }
+
+                    if (!anyRows) {
+                        JOptionPane.showMessageDialog(null,
+                                "No billing data found for this company in the selected date range.");
                     }
                 }
             }
 
         } catch (SQLException ex) {
             ex.printStackTrace();
-            JOptionPane.showMessageDialog(null, "Error loading data: " + ex.getMessage());
+            JOptionPane.showMessageDialog(null,
+                    "Database error: " + ex.getMessage(),
+                    "SQL Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
         }
     }
+
 
     /**
      * Exports the invoice table and header info to PDF.
