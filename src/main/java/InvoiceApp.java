@@ -1,170 +1,179 @@
-// Import essential Swing components for GUI and file chooser
+// InvoiceApp.java
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
-
-// Import iText classes for PDF creation
-import com.itextpdf.text.*;
-import com.itextpdf.text.pdf.*;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+// iText imports
+import com.itextpdf.text.*;
+import com.itextpdf.text.pdf.*;
 
 /**
- * InvoiceApp is a simple billing software GUI.
- *
- * In this version, when you click "Export to PDF",
- * a file-save dialog appears so you choose where to save your invoice.
- * Every step is commented in a teacher-style to help you learn.
+ * InvoiceApp with:
+ *  - Company selector (JComboBox)
+ *  - From/To date pickers using JSpinner+DateEditor
+ *  - Entry table + Add Row
+ *  - Save-as PDF dialog
  */
 public class InvoiceApp {
-
-    // GUI components declared at class level so all methods can use them
     private static JTable table;
     private static DefaultTableModel model;
     private static JTextField prestationField, tarifField, qtyField;
+    private static JComboBox<String> companyComboBox;
+    private static JSpinner fromDateSpinner, toDateSpinner;
 
     public static void main(String[] args) {
-        // We launch the GUI on the Event Dispatch Thread for thread safety in Swing
-        SwingUtilities.invokeLater(() -> createAndShowGUI());
+        SwingUtilities.invokeLater(InvoiceApp::createAndShowGUI);
     }
 
-    /**
-     * Builds and shows the main application window.
-     * This sets up the table, input fields, and buttons.
-     */
     private static void createAndShowGUI() {
-        // Create the main window frame
         JFrame frame = new JFrame("Billing Software");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(800, 500);
-        frame.setLocationRelativeTo(null); // Center the window on the screen
+        frame.setSize(900, 600);
+        frame.setLocationRelativeTo(null);
+        frame.setLayout(new BorderLayout(10, 10));
 
-        // Define the table model with four columns: service, price, quantity, total
+        // Top panel: Company + Date range
+        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        top.add(new JLabel("Company:"));
+        companyComboBox = new JComboBox<>(new String[]{"Company A", "Company B", "Company C"});
+        top.add(companyComboBox);
+
+        top.add(new JLabel("From:"));
+        fromDateSpinner = makeDateSpinner();
+        top.add(fromDateSpinner);
+
+        top.add(new JLabel("To:"));
+        toDateSpinner = makeDateSpinner();
+        top.add(toDateSpinner);
+
+        frame.add(top, BorderLayout.NORTH);
+
+        // Center: Invoice table
         model = new DefaultTableModel(
-                new Object[]{"Prestation", "Tarif (€)", "Quantité", "Total (€)"},
-                0
+                new Object[]{"Prestation", "Tarif (€)", "Quantité", "Total (€)"}, 0
         );
         table = new JTable(model);
-
-        // Wrap the table in a scroll pane in case many rows are added
         frame.add(new JScrollPane(table), BorderLayout.CENTER);
 
-        // Prepare input fields for adding new rows
+        // Bottom: Input fields + buttons
         prestationField = new JTextField();
-        tarifField     = new JTextField();
-        qtyField       = new JTextField();
+        tarifField       = new JTextField();
+        qtyField         = new JTextField();
 
-        // Panel with a 2×4 grid: labels and fields in the first row, buttons in the second
-        JPanel inputPanel = new JPanel(new GridLayout(2, 4));
-        inputPanel.add(new JLabel("Prestation"));
-        inputPanel.add(prestationField);
-        inputPanel.add(new JLabel("Tarif (€)"));
-        inputPanel.add(tarifField);
-        inputPanel.add(new JLabel("Quantité"));
-        inputPanel.add(qtyField);
+        JPanel bottom = new JPanel(new GridLayout(2, 4, 10, 5));
+        bottom.setBorder(BorderFactory.createEmptyBorder(5, 10, 10, 10));
 
-        // Buttons to add a row or export the table to PDF
-        JButton addButton    = new JButton("Add Row");
-        JButton exportButton = new JButton("Export to PDF");
-        inputPanel.add(addButton);
-        inputPanel.add(exportButton);
+        bottom.add(new JLabel("Prestation"));
+        bottom.add(prestationField);
+        bottom.add(new JLabel("Tarif (€)"));
+        bottom.add(tarifField);
+        bottom.add(new JLabel("Quantité"));
+        bottom.add(qtyField);
 
-        frame.add(inputPanel, BorderLayout.SOUTH);
+        JButton addBtn    = new JButton("Add Row");
+        JButton exportBtn = new JButton("Export to PDF");
+        bottom.add(addBtn);
+        bottom.add(exportBtn);
 
-        // When "Add Row" is clicked, validate inputs and add a new row to the table
-        addButton.addActionListener(e -> {
-            String prestation = prestationField.getText().trim();
-            String tarifText   = tarifField.getText().trim();
-            String qtyText     = qtyField.getText().trim();
+        frame.add(bottom, BorderLayout.SOUTH);
 
-            // Check for empty fields
-            if (prestation.isEmpty() || tarifText.isEmpty() || qtyText.isEmpty()) {
-                JOptionPane.showMessageDialog(
-                        null,
-                        "Please fill in all fields before adding."
-                );
+        // Add row action
+        addBtn.addActionListener(e -> {
+            String p = prestationField.getText().trim();
+            String t = tarifField.getText().trim();
+            String q = qtyField.getText().trim();
+            if (p.isEmpty() || t.isEmpty() || q.isEmpty()) {
+                JOptionPane.showMessageDialog(frame, "Please fill in all fields.");
                 return;
             }
-
             try {
-                // Parse numeric inputs
-                double tarif = Double.parseDouble(tarifText);
-                int qty      = Integer.parseInt(qtyText);
-                double total = tarif * qty;
-
-                // Add the new row to the table model
-                model.addRow(new Object[]{prestation, tarif, qty, total});
-
-                // Clear input fields for the next entry
+                double tarif = Double.parseDouble(t);
+                int qty      = Integer.parseInt(q);
+                model.addRow(new Object[]{p, tarif, qty, tarif * qty});
                 prestationField.setText("");
                 tarifField.setText("");
                 qtyField.setText("");
             } catch (NumberFormatException ex) {
-                // Show an error if parsing fails
-                JOptionPane.showMessageDialog(
-                        null,
-                        "Enter valid numeric values for Tarif and Quantité."
-                );
+                JOptionPane.showMessageDialog(frame,
+                        "Enter valid numbers for Tarif and Quantité.");
             }
         });
 
-        // When "Export to PDF" is clicked, open a save dialog and generate the PDF
-        exportButton.addActionListener(e -> exportPDF());
+        // Export action
+        exportBtn.addActionListener(e -> exportPDF(frame));
 
-        // Finally, display the window
         frame.setVisible(true);
     }
 
     /**
-     * Opens a file-save dialog, lets the user pick a location,
-     * and writes the current table data into a PDF invoice.
+     * Creates a JSpinner configured as a date picker (calendar pop-up).
      */
-    public static void exportPDF() {
-        // Step 1: Prompt user with a JFileChooser in SAVE mode
+    private static JSpinner makeDateSpinner() {
+        // SpinnerDateModel with current date, no bounds, step = day
+        SpinnerDateModel model = new SpinnerDateModel(new Date(), null, null, java.util.Calendar.DAY_OF_MONTH);
+        JSpinner spinner = new JSpinner(model);
+        // Editor that shows yyyy-MM-dd and provides a calendar popup
+        JSpinner.DateEditor editor = new JSpinner.DateEditor(spinner, "yyyy-MM-dd");
+        spinner.setEditor(editor);
+        return spinner;
+    }
+
+    /**
+     * Opens a save dialog, gathers inputs (company, dates, table rows),
+     * and writes them into a PDF invoice.
+     */
+    private static void exportPDF(Component parent) {
         JFileChooser chooser = new JFileChooser();
         chooser.setDialogTitle("Save Invoice as PDF");
         chooser.setFileFilter(new FileNameExtensionFilter("PDF Documents", "pdf"));
-        int userSelection = chooser.showSaveDialog(null);
-
-        // If the user cancels, do nothing
-        if (userSelection != JFileChooser.APPROVE_OPTION) {
+        if (chooser.showSaveDialog(parent) != JFileChooser.APPROVE_OPTION) {
             return;
         }
 
-        // Step 2: Determine the selected file and ensure ".pdf" extension
         File file = chooser.getSelectedFile();
         String path = file.getAbsolutePath();
         if (!path.toLowerCase().endsWith(".pdf")) {
             path += ".pdf";
         }
 
-        // Step 3: Build the PDF document using iText
+        // Read header data
+        String company = (String) companyComboBox.getSelectedItem();
+        Date fromDate  = ((SpinnerDateModel) fromDateSpinner.getModel()).getDate();
+        Date toDate    = ((SpinnerDateModel) toDateSpinner.getModel()).getDate();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+
         try {
             Document document = new Document();
             PdfWriter.getInstance(document, new FileOutputStream(path));
             document.open();
 
-            // Add a centered title
-            Paragraph title = new Paragraph(
-                    "Facture",
-                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18)
-            );
+            // Title
+            Paragraph title = new Paragraph("Facture",
+                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18));
             title.setAlignment(Element.ALIGN_CENTER);
             document.add(title);
-            document.add(new Paragraph(" ")); // Blank line for spacing
+            document.add(new Paragraph(" "));
 
-            // Create a table with the same number of columns as our JTable
+            // Company & date range
+            document.add(new Paragraph("Entreprise : " + company));
+            document.add(new Paragraph("Période : "
+                    + sdf.format(fromDate) + " – " + sdf.format(toDate)));
+            document.add(new Paragraph(" "));
+
+            // Build PDF table
             PdfPTable pdfTable = new PdfPTable(4);
             pdfTable.setWidths(new int[]{3, 2, 2, 2});
-
-            // Add header cells
             pdfTable.addCell("Prestation");
             pdfTable.addCell("Tarif (€)");
             pdfTable.addCell("Quantité");
             pdfTable.addCell("Total (€)");
 
-            // Populate the PDF table with data from the Swing table model
             double subTotal = 0;
             for (int i = 0; i < model.getRowCount(); i++) {
                 pdfTable.addCell(model.getValueAt(i, 0).toString());
@@ -173,28 +182,21 @@ public class InvoiceApp {
                 pdfTable.addCell(model.getValueAt(i, 3).toString());
                 subTotal += Double.parseDouble(model.getValueAt(i, 3).toString());
             }
-
             document.add(pdfTable);
 
-            // Add footer lines for subtotal and legal note
+            // Footer
             document.add(new Paragraph("Sous Total: " + subTotal + " €"));
             document.add(new Paragraph("TVA non applicable (article 293B du CGI)"));
             document.add(new Paragraph("Fait à Balma - " + java.time.LocalDate.now()));
 
             document.close();
 
-            // Inform the user of success
-            JOptionPane.showMessageDialog(
-                    null,
-                    "PDF exported successfully to:\n" + path
-            );
+            JOptionPane.showMessageDialog(parent,
+                    "PDF exported successfully to:\n" + path);
         } catch (Exception ex) {
-            // If anything goes wrong, show the error
             ex.printStackTrace();
-            JOptionPane.showMessageDialog(
-                    null,
-                    "Error exporting PDF: " + ex.getMessage()
-            );
+            JOptionPane.showMessageDialog(parent,
+                    "Error exporting PDF: " + ex.getMessage());
         }
     }
 }
