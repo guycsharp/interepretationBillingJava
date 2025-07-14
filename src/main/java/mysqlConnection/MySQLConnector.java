@@ -9,9 +9,9 @@ import java.sql.SQLException;
 public class MySQLConnector {
 
     // 🔧 Replace these with your actual database info
-    private static final String URL = "jdbc:mysql://localhost:3306/invoice_db?serverTimezone=UTC";
-    private static final String USER = "yourUsername";
-    private static final String PASSWORD = "yourPassword";
+    private static final String URL      = ConfigLoader.get("db.url");
+    private static final String USER     = ConfigLoader.get("db.username");
+    private static final String PASSWORD = ConfigLoader.get("db.password");
 
     /**
      * Establishes a connection to the MySQL database.
