@@ -1,6 +1,7 @@
 // InvoiceApp.java
-// Main GUI for billing: selects company from DB, picks date range, adds invoice lines,
-// and exports to a PDF using iText.
+// Main GUI: select a company & date range, Load rows from DB, add manual rows,
+// then Export everything to a PDF invoice.
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -18,7 +19,6 @@ import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.*;
 
 public class InvoiceApp {
-    // Swing components at class scope for easy access
     private static JTable table;
     private static DefaultTableModel model;
     private static JTextField prestationField, tarifField, qtyField;
@@ -26,13 +26,9 @@ public class InvoiceApp {
     private static JSpinner fromDateSpinner, toDateSpinner;
 
     public static void main(String[] args) {
-        // Always launch Swing GUIs on the Event Dispatch Thread
         SwingUtilities.invokeLater(InvoiceApp::createAndShowGUI);
     }
 
-    /**
-     * Builds and displays the main application window.
-     */
     private static void createAndShowGUI() {
         JFrame frame = new JFrame("Billing Software");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -40,7 +36,7 @@ public class InvoiceApp {
         frame.setLocationRelativeTo(null);
         frame.setLayout(new BorderLayout(10, 10));
 
-        // --- Top: filter panel with company selector and date range pickers ---
+        // --- Top panel: company selector + date range pickers ---
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
         filterPanel.add(new JLabel("Company:"));
         companyComboBox = createCompanyComboBox();
@@ -63,68 +59,78 @@ public class InvoiceApp {
         table = new JTable(model);
         frame.add(new JScrollPane(table), BorderLayout.CENTER);
 
-        // --- Bottom: input fields and action buttons ---
+        // --- Bottom: inputs + Add, Load, Export buttons ---
         prestationField = new JTextField();
         tarifField       = new JTextField();
         qtyField         = new JTextField();
 
-        JPanel inputPanel = new JPanel(new GridLayout(2, 4, 10, 5));
+        // use 2 rows × 5 cols so we can fit three buttons
+        JPanel inputPanel = new JPanel(new GridLayout(2, 5, 10, 5));
         inputPanel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+
+        // Row 1: labels & text fields
         inputPanel.add(new JLabel("Prestation"));
         inputPanel.add(prestationField);
         inputPanel.add(new JLabel("Tarif (€)"));
         inputPanel.add(tarifField);
         inputPanel.add(new JLabel("Quantité"));
-        inputPanel.add(qtyField);
 
-        JButton addButton    = new JButton("Add Row");
+        // Row 2: qty field + 3 buttons + filler
+        inputPanel.add(qtyField);
+        JButton addButton  = new JButton("Add Row");
+        JButton loadButton = new JButton("Load");
         JButton exportButton = new JButton("Export to PDF");
         inputPanel.add(addButton);
+        inputPanel.add(loadButton);
         inputPanel.add(exportButton);
+        inputPanel.add(new JLabel()); // filler cell
 
         frame.add(inputPanel, BorderLayout.SOUTH);
 
-        // Add row action: validate inputs, calculate total, add to table
+        // — Add Row logic —
         addButton.addActionListener(e -> {
-            String prestation = prestationField.getText().trim();
-            String tarifText   = tarifField.getText().trim();
-            String qtyText     = qtyField.getText().trim();
-            if (prestation.isEmpty() || tarifText.isEmpty() || qtyText.isEmpty()) {
-                JOptionPane.showMessageDialog(frame,
-                        "Please fill in all fields before adding.");
+            String p = prestationField.getText().trim();
+            String t = tarifField.getText().trim();
+            String q = qtyField.getText().trim();
+            if (p.isEmpty() || t.isEmpty() || q.isEmpty()) {
+                JOptionPane.showMessageDialog(frame, "Please fill in all fields.");
                 return;
             }
             try {
-                double tarif = Double.parseDouble(tarifText);
-                int qty      = Integer.parseInt(qtyText);
-                model.addRow(new Object[]{prestation, tarif, qty, tarif * qty});
+                double tarif = Double.parseDouble(t);
+                int qty = Integer.parseInt(q);
+                model.addRow(new Object[]{p, tarif, qty, tarif * qty});
                 prestationField.setText("");
                 tarifField.setText("");
                 qtyField.setText("");
             } catch (NumberFormatException ex) {
                 JOptionPane.showMessageDialog(frame,
-                        "Enter valid numeric values for Tarif and Quantité.");
+                        "Enter valid numbers for Tarif and Quantité.");
             }
         });
 
-        // Export to PDF action: opens save dialog, then writes PDF invoice
+        // — Load from DB logic —
+        loadButton.addActionListener(e -> loadData());
+
+        // — Export to PDF logic —
         exportButton.addActionListener(e -> exportPDF(frame));
 
         frame.setVisible(true);
     }
 
     /**
-     * Queries client_main for active client names, builds a JComboBox.
+     * Fetches active client names from client_main and
+     * builds a JComboBox.
      */
     private static JComboBox<String> createCompanyComboBox() {
         List<String> names = new ArrayList<>();
-        String sql = "SELECT client_name FROM client_main "
-                + "WHERE soft_delete IS NULL OR soft_delete = 0 "
-                + "ORDER BY client_name";
+        String sql =
+                "SELECT client_name FROM client_main " +
+                        "WHERE soft_delete IS NULL OR soft_delete = 0 " +
+                        "ORDER BY client_name";
         try (Connection conn = MySQLConnector.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-
             while (rs.next()) {
                 names.add(rs.getString("client_name"));
             }
@@ -139,21 +145,84 @@ public class InvoiceApp {
     }
 
     /**
-     * Creates a JSpinner configured as a date picker (calendar pop-up).
+     * Creates a JSpinner as a date picker (calendar pop-up).
      */
     private static JSpinner makeDateSpinner() {
-        SpinnerDateModel dateModel = new SpinnerDateModel(
+        SpinnerDateModel model = new SpinnerDateModel(
                 new Date(), null, null, java.util.Calendar.DAY_OF_MONTH
         );
-        JSpinner spinner = new JSpinner(dateModel);
+        JSpinner spinner = new JSpinner(model);
         JSpinner.DateEditor editor = new JSpinner.DateEditor(spinner, "yyyy-MM-dd");
         spinner.setEditor(editor);
         return spinner;
     }
 
     /**
-     * Opens a file-save dialog, then writes the invoice (with selected company
-     * and date range) into a PDF file using iText.
+     * Clears the table and loads rows from bill_main filtered by
+     * the selected company as CityServiced and the date range.
+     * Computes the correct tarif (per hour vs. per day) using client_main.
+     */
+    private static void loadData() {
+        model.setRowCount(0);  // clear existing rows
+
+        String company = (String) companyComboBox.getSelectedItem();
+        Date fromDate  = ((SpinnerDateModel) fromDateSpinner.getModel()).getDate();
+        Date toDate    = ((SpinnerDateModel) toDateSpinner.getModel()).getDate();
+
+        String rateSql =
+                "SELECT client_rate, client_rate_per_day " +
+                        "FROM client_main WHERE client_name = ?";
+        String billSql =
+                "SELECT service_rendered, UnitDay, workedDayOrHours " +
+                        "FROM bill_main " +
+                        "WHERE CityServiced = ? " +
+                        "  AND date_worked BETWEEN ? AND ?";
+
+        try (Connection conn = MySQLConnector.getConnection();
+             PreparedStatement psRate = conn.prepareStatement(rateSql)) {
+
+            // 1) fetch rates
+            psRate.setString(1, company);
+            double rate, ratePerDay;
+            try (ResultSet rs = psRate.executeQuery()) {
+                if (!rs.next()) {
+                    JOptionPane.showMessageDialog(null,
+                            "No rate info for " + company);
+                    return;
+                }
+                rate        = rs.getDouble("client_rate");
+                ratePerDay  = rs.getDouble("client_rate_per_day");
+            }
+
+            // 2) fetch bills
+            try (PreparedStatement psBill = conn.prepareStatement(billSql)) {
+                psBill.setString(1, company);
+                psBill.setTimestamp(2, new Timestamp(fromDate.getTime()));
+                psBill.setTimestamp(3, new Timestamp(toDate.getTime()));
+
+                try (ResultSet rs2 = psBill.executeQuery()) {
+                    while (rs2.next()) {
+                        String service = rs2.getString("service_rendered");
+                        int unitDay    = rs2.getInt("UnitDay");
+                        int qty        = rs2.getInt("workedDayOrHours");
+
+                        double tarif = (unitDay == 1) ? ratePerDay : rate;
+                        model.addRow(new Object[]{
+                                service, tarif, qty, tarif * qty
+                        });
+                    }
+                }
+            }
+
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(null,
+                    "Error loading data: " + ex.getMessage());
+        }
+    }
+
+    /**
+     * Opens a save dialog and dumps the table + header info into a PDF.
      */
     private static void exportPDF(Component parent) {
         JFileChooser chooser = new JFileChooser();
@@ -163,13 +232,12 @@ public class InvoiceApp {
             return;
         }
 
-        File file = chooser.getSelectedFile();
-        String path = file.getAbsolutePath();
+        String path = chooser.getSelectedFile().getAbsolutePath();
         if (!path.toLowerCase().endsWith(".pdf")) {
             path += ".pdf";
         }
 
-        // Gather header info
+        // Header info
         String company = (String) companyComboBox.getSelectedItem();
         Date fromDate  = ((SpinnerDateModel) fromDateSpinner.getModel()).getDate();
         Date toDate    = ((SpinnerDateModel) toDateSpinner.getModel()).getDate();
@@ -182,8 +250,7 @@ public class InvoiceApp {
 
             // Title
             Paragraph title = new Paragraph("Facture",
-                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18)
-            );
+                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18));
             title.setAlignment(Element.ALIGN_CENTER);
             document.add(title);
             document.add(new Paragraph(" "));
@@ -197,7 +264,7 @@ public class InvoiceApp {
 
             // Build PDF table
             PdfPTable pdfTable = new PdfPTable(4);
-            pdfTable.setWidths(new int[]{3, 2, 2, 2});
+            pdfTable.setWidths(new int[]{3,2,2,2});
             pdfTable.addCell("Prestation");
             pdfTable.addCell("Tarif (€)");
             pdfTable.addCell("Quantité");
@@ -219,6 +286,7 @@ public class InvoiceApp {
             document.add(new Paragraph("Fait à Balma - " + java.time.LocalDate.now()));
 
             document.close();
+
             JOptionPane.showMessageDialog(parent,
                     "PDF exported successfully to:\n" + path
             );
