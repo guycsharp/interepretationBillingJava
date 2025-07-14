@@ -8,6 +8,7 @@ repositories {
 
 dependencies {
     implementation 'com.itextpdf:itextpdf:5.5.13.3'
+    implementation 'mysql:mysql-connector-java:8.0.33'
 }
 
 application {
