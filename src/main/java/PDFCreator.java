@@ -26,9 +26,10 @@ public class PDFCreator {
         String path = chooser.getSelectedFile().getAbsolutePath();
         if (!path.toLowerCase().endsWith(".pdf")) path += ".pdf";
 
+        // 🏢 Access selected company and date range from InvoiceApp
         String company = (String) InvoiceApp.companyComboBox.getSelectedItem();
         Date fromDate = ((SpinnerDateModel) InvoiceApp.fromDateSpinner.getModel()).getDate();
-        Date toDate = ((SpinnerDateModel) InvoiceApp.toDateSpinner.getModel()).getDate();
+        Date toDate   = ((SpinnerDateModel) InvoiceApp.toDateSpinner.getModel()).getDate();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
         try {
@@ -36,14 +37,13 @@ public class PDFCreator {
             PdfWriter.getInstance(doc, new FileOutputStream(path));
             doc.open();
 
-            // 📝 Title
-            Paragraph title = new Paragraph("Facture",
-                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18));
+            // 📝 PDF Title
+            Paragraph title = new Paragraph("Facture", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18));
             title.setAlignment(Element.ALIGN_CENTER);
             doc.add(title);
             doc.add(new Paragraph(" "));
 
-            // 🏢 Company and date range
+            // 🔖 Company and date range info
             doc.add(new Paragraph("Entreprise : " + company));
             doc.add(new Paragraph("Période : " + sdf.format(fromDate) + " – " + sdf.format(toDate)));
             doc.add(new Paragraph(" "));
@@ -57,6 +57,8 @@ public class PDFCreator {
             pdfTable.addCell("Total (€)");
 
             double subTotal = 0;
+
+            // ➕ Add invoice rows from the table model
             for (int i = 0; i < InvoiceApp.model.getRowCount(); i++) {
                 pdfTable.addCell(InvoiceApp.model.getValueAt(i, 0).toString());
                 pdfTable.addCell(InvoiceApp.model.getValueAt(i, 1).toString());
@@ -65,20 +67,26 @@ public class PDFCreator {
                 subTotal += Double.parseDouble(InvoiceApp.model.getValueAt(i, 3).toString());
             }
 
-            // ➕ Add subtotal row directly in table, aligned under "Total (€)"
-            pdfTable.addCell(""); // empty cell under "Prestation"
-            pdfTable.addCell(""); // empty cell under "Tarif (€)"
+            // ➕ Subtotal row within the table, aligned under "Total (€)"
+            PdfPCell emptyCell1 = new PdfPCell(new Paragraph(""));
+            emptyCell1.setBorder(PdfPCell.NO_BORDER);
+            pdfTable.addCell(emptyCell1);
+
+            PdfPCell emptyCell2 = new PdfPCell(new Paragraph(""));
+            emptyCell2.setBorder(PdfPCell.NO_BORDER);
+            pdfTable.addCell(emptyCell2);
+
             PdfPCell labelCell = new PdfPCell(new Paragraph("Sous Total"));
             labelCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
-            pdfTable.addCell(labelCell); // label under "Quantité"
+            pdfTable.addCell(labelCell);
 
             PdfPCell valueCell = new PdfPCell(new Paragraph(subTotal + " €"));
             valueCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
-            pdfTable.addCell(valueCell); // value under "Total (€)"
+            pdfTable.addCell(valueCell);
 
             doc.add(pdfTable);
 
-            // 📄 Footer notes
+            // 📝 Footer notes
             doc.add(new Paragraph(" "));
             doc.add(new Paragraph("TVA non applicable (article 293B du CGI)"));
             doc.add(new Paragraph("Fait à Balma - " + java.time.LocalDate.now()));
