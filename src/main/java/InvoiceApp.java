@@ -153,79 +153,122 @@ public class InvoiceApp {
      */
 
 
+    /**
+     * Loads invoice rows from the database based on the selected company and date range.
+     * It clears the current table, retrieves the client's billing rate and ID,
+     * queries billing entries from bill_main, calculates totals, updates the table,
+     * and shows debug popups for each loaded row.
+     */
     private static void loadData() {
-        // Clear previous table data
+        // 🧹 Step 0: Clear existing rows in the invoice table
         model.setRowCount(0);
 
-        // Get selected company and date range
+        // 🏢 Step 1: Get the selected company name from the dropdown
         String company = (String) companyComboBox.getSelectedItem();
-        Date fromDate  = ((SpinnerDateModel) fromDateSpinner.getModel()).getDate();
-        Date toDate    = ((SpinnerDateModel) toDateSpinner.getModel()).getDate();
 
-        // Queries
+        // 📅 Step 2: Get the date range selected in the GUI
+        Date fromDate = ((SpinnerDateModel) fromDateSpinner.getModel()).getDate(); // start
+        Date toDate   = ((SpinnerDateModel) toDateSpinner.getModel()).getDate();   // end
+
+        // 📄 Step 3: SQL queries used in this method
+        // This query fetches the rates and client ID for the selected company
         String rateSql = "SELECT client_rate, client_rate_per_day, idclient_main FROM client_main WHERE client_name = ?";
-        String billSql = "SELECT service_rendered, UnitDay, workedDayOrHours FROM bill_main WHERE client_id = ? AND date_worked BETWEEN ? AND ?";
 
-        try (Connection conn = MySQLConnector.getConnection();
-             PreparedStatement psRate = conn.prepareStatement(rateSql)) {
+        // This query fetches billing entries that match the client's ID and fall within the date range
+        // Note: date range uses >= for fromDate and <= for toDate to avoid reversed logic
+        String billSql = "SELECT service_rendered, UnitDay, workedDayOrHours " +
+                "FROM bill_main " +
+                "WHERE client_id = ? AND date_worked >= ? AND date_worked <= ?";
 
-            // Step 1: Get rate info and client ID
+        try (
+                // 🔌 Step 4: Connect to the database
+                Connection conn = MySQLConnector.getConnection();
+
+                // 🏷️ Prepare rate lookup query
+                PreparedStatement psRate = conn.prepareStatement(rateSql)
+        ) {
+            // 🧮 Step 5: Set company name as a parameter in the rate query
             psRate.setString(1, company);
-            double rate, ratePerDay;
-            int clientId;
 
+            double rate;        // hourly rate from client_main
+            double ratePerDay;  // daily rate from client_main
+            int clientId;       // primary key ID from client_main
+
+            // 📦 Step 6: Execute the query and extract client rate info
             try (ResultSet rs = psRate.executeQuery()) {
                 if (!rs.next()) {
-                    JOptionPane.showMessageDialog(null, "No rate info for " + company);
+                    // ❌ No matching company found
+                    JOptionPane.showMessageDialog(null, "No rate info found for " + company);
                     return;
                 }
+
+                // ✅ Extract values from result
                 rate        = rs.getDouble("client_rate");
                 ratePerDay  = rs.getDouble("client_rate_per_day");
                 clientId    = rs.getInt("idclient_main");
             }
 
-            // Step 2: Get bill entries in date range
+            // 🧪 Step 7: Display a debug summary before querying billing data
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            JOptionPane.showMessageDialog(null,
+                    "Fetching data for: " + company +
+                            "\nClient ID: " + clientId +
+                            "\nDate Range: " + sdf.format(fromDate) + " → " + sdf.format(toDate),
+                    "Debug Info",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+
+            // 🧾 Step 8: Prepare the billing query
             try (PreparedStatement psBill = conn.prepareStatement(billSql)) {
+                // ✅ Use actual Timestamp objects so date comparisons work correctly
                 psBill.setInt(1, clientId);
-                psBill.setTimestamp(2, new Timestamp(fromDate.getTime()));
-                psBill.setTimestamp(3, new Timestamp(toDate.getTime()));
+                psBill.setDate(2, new java.sql.Date(fromDate.getTime())); // start
+                psBill.setDate(3, new java.sql.Date(toDate.getTime()));   // end
+
 
                 try (ResultSet rs2 = psBill.executeQuery()) {
                     boolean anyRows = false;
 
+                    // 🧮 Step 9: Loop through billing entries and populate the invoice table
                     while (rs2.next()) {
                         anyRows = true;
 
-                        String service = rs2.getString("service_rendered");
-                        int unitDay    = rs2.getInt("UnitDay");
-                        int qty        = rs2.getInt("workedDayOrHours");
-                        double tarif   = (unitDay == 1) ? ratePerDay : rate;
-                        double total   = tarif * qty;
+                        String service = rs2.getString("service_rendered");   // What was done
+                        int unitDay    = rs2.getInt("UnitDay");              // 1 = daily, 0 = hourly
+                        int qty        = rs2.getInt("workedDayOrHours");     // Number of days or hours
+                        double tarif   = (unitDay == 1) ? ratePerDay : rate; // Which rate to use
+                        double total   = tarif * qty;                         // Total cost
 
-                        // Show debug popup
+                        // 🐞 Show popup to help verify what’s being loaded
                         SwingUtilities.invokeLater(() -> {
                             JOptionPane.showMessageDialog(null,
-                                    "Service: " + service +
+                                    "Loaded Entry:\n" +
+                                            "Service: " + service +
                                             "\nTarif: " + tarif +
                                             "\nQuantité: " + qty +
                                             "\nTotal: " + total,
-                                    "Loaded Row",
+                                    "Debug - Loaded Row",
                                     JOptionPane.INFORMATION_MESSAGE
                             );
                         });
 
-                        // Add to invoice table
+                        // ➕ Add row to table
                         model.addRow(new Object[]{service, tarif, qty, total});
                     }
 
+                    // 🚫 If no rows matched the criteria, show a separate message
                     if (!anyRows) {
                         JOptionPane.showMessageDialog(null,
-                                "No billing data found for this company in the selected date range.");
+                                "No billing entries found for this company in the selected date range.",
+                                "No Data",
+                                JOptionPane.WARNING_MESSAGE
+                        );
                     }
                 }
             }
 
         } catch (SQLException ex) {
+            // 🧨 If anything goes wrong (e.g. bad connection or syntax), show error details
             ex.printStackTrace();
             JOptionPane.showMessageDialog(null,
                     "Database error: " + ex.getMessage(),
@@ -234,6 +277,7 @@ public class InvoiceApp {
             );
         }
     }
+
 
 
     /**
