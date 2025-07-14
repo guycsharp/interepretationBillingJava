@@ -1,20 +1,24 @@
+// ConfigLoader.java
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Properties;
 
 public class ConfigLoader {
-    private static Properties props = new Properties();
+    private static final String CONFIG_PATH =
+            System.getProperty("user.dir") + File.separator
+                    + "resources" + File.separator
+                    + "config.properties";
+
+    private static final Properties props = new Properties();
 
     static {
-        try (InputStream in = ConfigLoader.class
-                .getClassLoader()
-                .getResourceAsStream("config.properties")) {
-            if (in == null) {
-                throw new IOException("config.properties not found in classpath");
-            }
-            props.load(in);
+        try (FileInputStream fis = new FileInputStream(CONFIG_PATH)) {
+            props.load(fis);
         } catch (IOException e) {
-            throw new ExceptionInInitializerError("Unable to load config: " + e.getMessage());
+            throw new ExceptionInInitializerError(
+                    "Failed to load config.properties from " + CONFIG_PATH
+            );
         }
     }
 
