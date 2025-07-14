@@ -1,6 +1,5 @@
 // InvoiceApp.java
-// Main GUI: select a company & date range, Load rows from DB, add manual rows,
-// then Export everything to a PDF invoice.
+// GUI-based billing application with PDF export using iText and MySQL integration
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -14,11 +13,12 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-// iText imports
+// iText PDF imports
 import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.*;
 
 public class InvoiceApp {
+    // 👇 Declare table and form components as static for shared access
     private static JTable table;
     private static DefaultTableModel model;
     private static JTextField prestationField, tarifField, qtyField;
@@ -36,58 +36,57 @@ public class InvoiceApp {
         frame.setLocationRelativeTo(null);
         frame.setLayout(new BorderLayout(10, 10));
 
-        // --- Top panel: company selector + date range pickers ---
+        // 🔝 Top panel: company selector and date pickers
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
         filterPanel.add(new JLabel("Company:"));
-        companyComboBox = createCompanyComboBox();
+        companyComboBox = createCompanyComboBox(); // 🏢 Dropdown populated from DB
         filterPanel.add(companyComboBox);
 
         filterPanel.add(new JLabel("From:"));
-        fromDateSpinner = makeDateSpinner();
+        fromDateSpinner = makeDateSpinner();       // 📅 JSpinner for start date
         filterPanel.add(fromDateSpinner);
 
         filterPanel.add(new JLabel("To:"));
-        toDateSpinner = makeDateSpinner();
+        toDateSpinner = makeDateSpinner();         // 📅 JSpinner for end date
         filterPanel.add(toDateSpinner);
 
         frame.add(filterPanel, BorderLayout.NORTH);
 
-        // --- Center: invoice table ---
+        // 📊 Main invoice table with four columns
         model = new DefaultTableModel(
                 new Object[]{"Prestation", "Tarif (€)", "Quantité", "Total (€)"}, 0
         );
         table = new JTable(model);
         frame.add(new JScrollPane(table), BorderLayout.CENTER);
 
-        // --- Bottom: inputs + Add, Load, Export buttons ---
+        // 🧮 Bottom panel: manual entry + control buttons
         prestationField = new JTextField();
         tarifField       = new JTextField();
         qtyField         = new JTextField();
 
-        // use 2 rows × 5 cols so we can fit three buttons
         JPanel inputPanel = new JPanel(new GridLayout(2, 5, 10, 5));
         inputPanel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
-        // Row 1: labels & text fields
+        // Row 1: input labels and fields
         inputPanel.add(new JLabel("Prestation"));
         inputPanel.add(prestationField);
         inputPanel.add(new JLabel("Tarif (€)"));
         inputPanel.add(tarifField);
         inputPanel.add(new JLabel("Quantité"));
 
-        // Row 2: qty field + 3 buttons + filler
+        // Row 2: fields and buttons
         inputPanel.add(qtyField);
-        JButton addButton  = new JButton("Add Row");
-        JButton loadButton = new JButton("Load");
-        JButton exportButton = new JButton("Export to PDF");
+        JButton addButton    = new JButton("Add Row");      // ➕ Manual add
+        JButton loadButton   = new JButton("Load");         // 🔄 Load from DB
+        JButton exportButton = new JButton("Export to PDF");// 📤 Export to PDF
         inputPanel.add(addButton);
         inputPanel.add(loadButton);
         inputPanel.add(exportButton);
-        inputPanel.add(new JLabel()); // filler cell
+        inputPanel.add(new JLabel()); // filler
 
         frame.add(inputPanel, BorderLayout.SOUTH);
 
-        // — Add Row logic —
+        // ➕ Manual row add logic
         addButton.addActionListener(e -> {
             String p = prestationField.getText().trim();
             String t = tarifField.getText().trim();
@@ -109,25 +108,21 @@ public class InvoiceApp {
             }
         });
 
-        // — Load from DB logic —
+        // 🔄 Load data from database based on selected company and date
         loadButton.addActionListener(e -> loadData());
 
-        // — Export to PDF logic —
+        // 📤 Export table contents to PDF
         exportButton.addActionListener(e -> exportPDF(frame));
 
         frame.setVisible(true);
     }
 
     /**
-     * Fetches active client names from client_main and
-     * builds a JComboBox.
+     * Create a combo box populated with client names from the database.
      */
     private static JComboBox<String> createCompanyComboBox() {
         List<String> names = new ArrayList<>();
-        String sql =
-                "SELECT client_name FROM client_main " +
-                        "WHERE soft_delete IS NULL OR soft_delete = 0 " +
-                        "ORDER BY client_name";
+        String sql = "SELECT client_name FROM client_main WHERE soft_delete IS NULL OR soft_delete = 0 ORDER BY client_name";
         try (Connection conn = MySQLConnector.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -138,19 +133,15 @@ public class InvoiceApp {
             e.printStackTrace();
             names.add("<< error loading companies >>");
         }
-        if (names.isEmpty()) {
-            names.add("<< no companies found >>");
-        }
+        if (names.isEmpty()) names.add("<< no companies found >>");
         return new JComboBox<>(names.toArray(new String[0]));
     }
 
     /**
-     * Creates a JSpinner as a date picker (calendar pop-up).
+     * Create a date picker using JSpinner.
      */
     private static JSpinner makeDateSpinner() {
-        SpinnerDateModel model = new SpinnerDateModel(
-                new Date(), null, null, java.util.Calendar.DAY_OF_MONTH
-        );
+        SpinnerDateModel model = new SpinnerDateModel(new Date(), null, null, java.util.Calendar.DAY_OF_MONTH);
         JSpinner spinner = new JSpinner(model);
         JSpinner.DateEditor editor = new JSpinner.DateEditor(spinner, "yyyy-MM-dd");
         spinner.setEditor(editor);
@@ -158,45 +149,39 @@ public class InvoiceApp {
     }
 
     /**
-     * Clears the table and loads rows from bill_main filtered by
-     * the selected company as CityServiced and the date range.
-     * Computes the correct tarif (per hour vs. per day) using client_main.
+     * Load data from bill_main for the selected company and date range.
      */
     private static void loadData() {
-        model.setRowCount(0);  // clear existing rows
+        model.setRowCount(0);  // 🧹 Clear table
 
         String company = (String) companyComboBox.getSelectedItem();
         Date fromDate  = ((SpinnerDateModel) fromDateSpinner.getModel()).getDate();
         Date toDate    = ((SpinnerDateModel) toDateSpinner.getModel()).getDate();
 
-        String rateSql =
-                "SELECT client_rate, client_rate_per_day " +
-                        "FROM client_main WHERE client_name = ?";
-        String billSql =
-                "SELECT service_rendered, UnitDay, workedDayOrHours " +
-                        "FROM bill_main " +
-                        "WHERE CityServiced = ? " +
-                        "  AND date_worked BETWEEN ? AND ?";
+        // 1️⃣ Lookup rate info for this client
+        String rateSql = "SELECT client_rate, client_rate_per_day, idclient_main FROM client_main WHERE client_name = ?";
+        String billSql = "SELECT service_rendered, UnitDay, workedDayOrHours FROM bill_main WHERE client_id = ? AND date_worked BETWEEN ? AND ?";
 
         try (Connection conn = MySQLConnector.getConnection();
              PreparedStatement psRate = conn.prepareStatement(rateSql)) {
 
-            // 1) fetch rates
             psRate.setString(1, company);
             double rate, ratePerDay;
+            int clientId;
+
             try (ResultSet rs = psRate.executeQuery()) {
                 if (!rs.next()) {
-                    JOptionPane.showMessageDialog(null,
-                            "No rate info for " + company);
+                    JOptionPane.showMessageDialog(null, "No rate info for " + company);
                     return;
                 }
-                rate        = rs.getDouble("client_rate");
-                ratePerDay  = rs.getDouble("client_rate_per_day");
+                rate = rs.getDouble("client_rate");
+                ratePerDay = rs.getDouble("client_rate_per_day");
+                clientId = rs.getInt("idclient_main");
             }
 
-            // 2) fetch bills
+            // 2️⃣ Fetch billable entries for that client
             try (PreparedStatement psBill = conn.prepareStatement(billSql)) {
-                psBill.setString(1, company);
+                psBill.setInt(1, clientId);
                 psBill.setTimestamp(2, new Timestamp(fromDate.getTime()));
                 psBill.setTimestamp(3, new Timestamp(toDate.getTime()));
 
@@ -205,66 +190,57 @@ public class InvoiceApp {
                         String service = rs2.getString("service_rendered");
                         int unitDay    = rs2.getInt("UnitDay");
                         int qty        = rs2.getInt("workedDayOrHours");
+                        double tarif   = (unitDay == 1) ? ratePerDay : rate;
 
-                        double tarif = (unitDay == 1) ? ratePerDay : rate;
-                        model.addRow(new Object[]{
-                                service, tarif, qty, tarif * qty
-                        });
+                        // ✅ Add row dynamically
+                        model.addRow(new Object[]{service, tarif, qty, tarif * qty});
                     }
                 }
             }
 
         } catch (SQLException ex) {
             ex.printStackTrace();
-            JOptionPane.showMessageDialog(null,
-                    "Error loading data: " + ex.getMessage());
+            JOptionPane.showMessageDialog(null, "Error loading data: " + ex.getMessage());
         }
     }
 
     /**
-     * Opens a save dialog and dumps the table + header info into a PDF.
+     * Exports the invoice table and header info to PDF.
      */
     private static void exportPDF(Component parent) {
         JFileChooser chooser = new JFileChooser();
         chooser.setDialogTitle("Save Invoice as PDF");
         chooser.setFileFilter(new FileNameExtensionFilter("PDF Documents", "pdf"));
-        if (chooser.showSaveDialog(parent) != JFileChooser.APPROVE_OPTION) {
-            return;
-        }
+        if (chooser.showSaveDialog(parent) != JFileChooser.APPROVE_OPTION) return;
 
         String path = chooser.getSelectedFile().getAbsolutePath();
-        if (!path.toLowerCase().endsWith(".pdf")) {
-            path += ".pdf";
-        }
+        if (!path.toLowerCase().endsWith(".pdf")) path += ".pdf";
 
-        // Header info
         String company = (String) companyComboBox.getSelectedItem();
         Date fromDate  = ((SpinnerDateModel) fromDateSpinner.getModel()).getDate();
         Date toDate    = ((SpinnerDateModel) toDateSpinner.getModel()).getDate();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
         try {
-            Document document = new Document();
-            PdfWriter.getInstance(document, new FileOutputStream(path));
-            document.open();
+            Document doc = new Document();
+            PdfWriter.getInstance(doc, new FileOutputStream(path));
+            doc.open();
 
-            // Title
+            // 📝 Title
             Paragraph title = new Paragraph("Facture",
                     FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18));
             title.setAlignment(Element.ALIGN_CENTER);
-            document.add(title);
-            document.add(new Paragraph(" "));
+            doc.add(title);
+            doc.add(new Paragraph(" "));
 
-            // Company & date range
-            document.add(new Paragraph("Entreprise : " + company));
-            document.add(new Paragraph(
-                    "Période : " + sdf.format(fromDate) + " – " + sdf.format(toDate)
-            ));
-            document.add(new Paragraph(" "));
+            // 🏢 Company and date range
+            doc.add(new Paragraph("Entreprise : " + company));
+            doc.add(new Paragraph("Période : " + sdf.format(fromDate) + " – " + sdf.format(toDate)));
+            doc.add(new Paragraph(" "));
 
-            // Build PDF table
+            // 📋 Invoice table in PDF
             PdfPTable pdfTable = new PdfPTable(4);
-            pdfTable.setWidths(new int[]{3,2,2,2});
+            pdfTable.setWidths(new int[]{3, 2, 2, 2});
             pdfTable.addCell("Prestation");
             pdfTable.addCell("Tarif (€)");
             pdfTable.addCell("Quantité");
@@ -278,23 +254,19 @@ public class InvoiceApp {
                 pdfTable.addCell(model.getValueAt(i, 3).toString());
                 subTotal += Double.parseDouble(model.getValueAt(i, 3).toString());
             }
-            document.add(pdfTable);
+            doc.add(pdfTable);
 
-            // Footer
-            document.add(new Paragraph("Sous Total: " + subTotal + " €"));
-            document.add(new Paragraph("TVA non applicable (article 293B du CGI)"));
-            document.add(new Paragraph("Fait à Balma - " + java.time.LocalDate.now()));
+            // 🧾 Footer notes
+            doc.add(new Paragraph("Sous Total: " + subTotal + " €"));
+            doc.add(new Paragraph("TVA non applicable (article 293B du CGI)"));
+            doc.add(new Paragraph("Fait à Balma - " + java.time.LocalDate.now()));
 
-            document.close();
+            doc.close();
+            JOptionPane.showMessageDialog(parent, "PDF exported successfully to:\n" + path);
 
-            JOptionPane.showMessageDialog(parent,
-                    "PDF exported successfully to:\n" + path
-            );
         } catch (Exception ex) {
             ex.printStackTrace();
-            JOptionPane.showMessageDialog(parent,
-                    "Error exporting PDF: " + ex.getMessage()
-            );
+            JOptionPane.showMessageDialog(parent, "Error exporting PDF: " + ex.getMessage());
         }
     }
 }
