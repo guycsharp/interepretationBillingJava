@@ -1,132 +1,241 @@
+// InvoiceApp.java
+// GUI-based billing tool: selects company, picks date range,
+// loads invoice rows from DB, manually adds rows, and exports to PDF via PDFCreator.
 
-// Import essential Swing components for GUI
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.sql.*;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
-// Import iText classes for PDF creation
-import com.itextpdf.text.*;
-import com.itextpdf.text.pdf.*;
-import java.io.FileOutputStream;
-
-// This declares your class in the default package.
-// If you want to use a package, make sure your folders match.
 public class InvoiceApp {
-
-    // 🗂️ GUI components declared at the class level so they're accessible across methods
-    private static JTable table;
-    private static DefaultTableModel model;
-    private static JTextField prestationField, tarifField, qtyField;
+    // Public components accessed by PDFCreator
+    public static JTable table;
+    public static DefaultTableModel model;
+    public static JTextField prestationField, tarifField, qtyField;
+    public static JComboBox<String> companyComboBox;
+    public static JSpinner fromDateSpinner, toDateSpinner;
+    public static double bill_no;
 
     public static void main(String[] args) {
-        // 🧵 Launch GUI safely on the Event Dispatch Thread
-        javax.swing.SwingUtilities.invokeLater(() -> createAndShowGUI());
+        SwingUtilities.invokeLater(InvoiceApp::createAndShowGUI);
     }
 
-    // 🖼️ Builds and displays the GUI window
     private static void createAndShowGUI() {
-        // 🌟 Main window frame
-        javax.swing.JFrame frame = new javax.swing.JFrame("Billing Software");
-        frame.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
-        frame.setSize(800, 500);
-        frame.setLocationRelativeTo(null); // center on screen
+        JFrame frame = new JFrame("Billing Software");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(900, 600);
+        frame.setLocationRelativeTo(null);
+        frame.setLayout(new BorderLayout(10, 10));
 
-        // 📋 Table model setup
-        model = new javax.swing.table.DefaultTableModel(new Object[]{"Prestation", "Tarif (€)", "Quantité", "Total (€)"}, 0);
-        table = new javax.swing.JTable(model);
-        frame.add(new javax.swing.JScrollPane(table), java.awt.BorderLayout.CENTER);
+        // 🔝 Top panel: company selector and date range
+        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        filterPanel.add(new JLabel("Company:"));
+        companyComboBox = createCompanyComboBox();
+        filterPanel.add(companyComboBox);
 
-        // 🧮 Input fields for invoice entries
-        prestationField = new javax.swing.JTextField();
-        tarifField = new javax.swing.JTextField();
-        qtyField = new javax.swing.JTextField();
+        filterPanel.add(new JLabel("From:"));
+        fromDateSpinner = makeDateSpinner();
+        filterPanel.add(fromDateSpinner);
 
-        javax.swing.JPanel inputPanel = new javax.swing.JPanel(new java.awt.GridLayout(2, 4));
-        inputPanel.add(new javax.swing.JLabel("Prestation"));
+        filterPanel.add(new JLabel("To:"));
+        toDateSpinner = makeDateSpinner();
+        filterPanel.add(toDateSpinner);
+
+        frame.add(filterPanel, BorderLayout.NORTH);
+
+        // 📋 Center: invoice table
+        model = new DefaultTableModel(new Object[]{"Prestation", "Tarif (€)", "Quantité", "Total (€)"}, 0);
+        table = new JTable(model);
+        frame.add(new JScrollPane(table), BorderLayout.CENTER);
+
+        // 🔘 Bottom panel: fields and buttons
+        prestationField = new JTextField();
+        tarifField = new JTextField();
+        qtyField = new JTextField();
+
+        JPanel inputPanel = new JPanel(new GridLayout(2, 5, 10, 5));
+        inputPanel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        inputPanel.add(new JLabel("Prestation"));
         inputPanel.add(prestationField);
-        inputPanel.add(new javax.swing.JLabel("Tarif (€)"));
+        inputPanel.add(new JLabel("Tarif (€)"));
         inputPanel.add(tarifField);
-        inputPanel.add(new javax.swing.JLabel("Quantité"));
+        inputPanel.add(new JLabel("Quantité"));
         inputPanel.add(qtyField);
 
-        javax.swing.JButton addButton = new javax.swing.JButton("Add Row");
-        javax.swing.JButton exportButton = new javax.swing.JButton("Export to PDF");
+        JButton addButton = new JButton("Add Row");
+        JButton loadButton = new JButton("Load from DB");
+        JButton exportButton = new JButton("Export to PDF");
+
         inputPanel.add(addButton);
+        filterPanel.add(loadButton);
         inputPanel.add(exportButton);
+        inputPanel.add(new JLabel()); // filler
 
-        frame.add(inputPanel, java.awt.BorderLayout.SOUTH);
+        frame.add(inputPanel, BorderLayout.SOUTH);
 
-        // ➕ Add row to the table with validation
+        // ➕ Add row manually
         addButton.addActionListener(e -> {
-            String prestation = prestationField.getText().trim();
+            String service = prestationField.getText().trim();
             String tarifText = tarifField.getText().trim();
             String qtyText = qtyField.getText().trim();
-
-            if (prestation.isEmpty() || tarifText.isEmpty() || qtyText.isEmpty()) {
-                javax.swing.JOptionPane.showMessageDialog(null, "Please fill in all fields before adding.");
+            if (service.isEmpty() || tarifText.isEmpty() || qtyText.isEmpty()) {
+                JOptionPane.showMessageDialog(frame, "Please fill all fields.");
                 return;
             }
-
             try {
                 double tarif = Double.parseDouble(tarifText);
                 int qty = Integer.parseInt(qtyText);
-                double total = tarif * qty;
-
-                model.addRow(new Object[]{prestation, tarif, qty, total});
+                model.addRow(new Object[]{service, tarif, qty, tarif * qty});
                 prestationField.setText("");
                 tarifField.setText("");
                 qtyField.setText("");
             } catch (NumberFormatException ex) {
-                javax.swing.JOptionPane.showMessageDialog(null, "Enter valid numeric values for Tarif and Quantité.");
+                JOptionPane.showMessageDialog(frame, "Tarif and Quantité must be numeric.");
             }
         });
 
-        // 📤 Export table data to PDF
-        exportButton.addActionListener(e -> exportPDF());
+        // 🔄 Load rows from database
+        loadButton.addActionListener(e -> loadData());
+
+        // 📤 Export to PDF using separate class
+        exportButton.addActionListener(e -> PDFCreator.exportPDF(frame,bill_no+1));
 
         frame.setVisible(true);
     }
 
-    // 📄 PDF creation using iText library
-    public static void exportPDF() {
-        try {
-            com.itextpdf.text.Document document = new com.itextpdf.text.Document();
-            com.itextpdf.text.pdf.PdfWriter.getInstance(document, new java.io.FileOutputStream("invoice.pdf"));
-            document.open();
+    /**
+     * Populates company dropdown from client_main table.
+     */
+    private static JComboBox<String> createCompanyComboBox() {
+        List<String> names = new ArrayList<>();
+        String sql = "SELECT client_name FROM client_main WHERE soft_delete IS NULL OR soft_delete = 0 ORDER BY client_name";
 
-            com.itextpdf.text.Paragraph title = new com.itextpdf.text.Paragraph("Facture",
-                    com.itextpdf.text.FontFactory.getFont(com.itextpdf.text.FontFactory.HELVETICA_BOLD, 18));
-            title.setAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
-            document.add(title);
-            document.add(new com.itextpdf.text.Paragraph(" "));
+        try (Connection conn = MySQLConnector.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
 
-            com.itextpdf.text.pdf.PdfPTable pdfTable = new com.itextpdf.text.pdf.PdfPTable(4);
-            pdfTable.setWidths(new int[]{3, 2, 2, 2});
-            pdfTable.addCell("Prestation");
-            pdfTable.addCell("Tarif (€)");
-            pdfTable.addCell("Quantité");
-            pdfTable.addCell("Total (€)");
+            while (rs.next()) {
+                names.add(rs.getString("client_name"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            names.add("<< error loading companies >>");
+        }
 
-            double subTotal = 0;
-            for (int i = 0; i < model.getRowCount(); i++) {
-                pdfTable.addCell(model.getValueAt(i, 0).toString());
-                pdfTable.addCell(model.getValueAt(i, 1).toString());
-                pdfTable.addCell(model.getValueAt(i, 2).toString());
-                pdfTable.addCell(model.getValueAt(i, 3).toString());
+        if (names.isEmpty()) names.add("<< no companies found >>");
 
-                subTotal += Double.parseDouble(model.getValueAt(i, 3).toString());
+        return new JComboBox<>(names.toArray(new String[0]));
+    }
+
+    /**
+     * Creates a date spinner using yyyy-MM-dd format.
+     */
+    private static JSpinner makeDateSpinner() {
+        SpinnerDateModel model = new SpinnerDateModel(new Date(), null, null, java.util.Calendar.DAY_OF_MONTH);
+        JSpinner spinner = new JSpinner(model);
+        spinner.setEditor(new JSpinner.DateEditor(spinner, "yyyy-MM-dd"));
+        return spinner;
+    }
+
+    /**
+     * Loads rows from bill_main using selected client and date range.
+     */
+    private static void loadData() {
+        // 🧹 Step 1: Clear any existing rows in the table before loading new data
+        model.setRowCount(0);
+
+        // 🏢 Step 2: Get selected company and date range from UI
+        String company   = (String) companyComboBox.getSelectedItem();
+        Date fromDate    = ((SpinnerDateModel) fromDateSpinner.getModel()).getDate();
+        Date toDate      = ((SpinnerDateModel) toDateSpinner.getModel()).getDate();
+
+        // 🧾 Step 3: SQL queries
+        String rateSql    = "SELECT client_rate, client_rate_per_day, idclient_main FROM client_main WHERE client_name = ?";
+        String maxBillSql = "SELECT MAX(bill_no) as max_bill FROM bill_main ";
+        String billSql    = "SELECT service_rendered, UnitDay, workedDayOrHours FROM bill_main WHERE client_id = ? AND date_worked >= ? AND date_worked <= ?";
+
+        try (
+                Connection conn = MySQLConnector.getConnection();
+
+                // 🌐 Query client rates and ID
+                PreparedStatement psRate = conn.prepareStatement(rateSql)
+        ) {
+            // Step 4: Bind company name to client lookup query
+            psRate.setString(1, company);
+
+            double rate;
+            double ratePerDay;
+            int clientId;
+
+            // Step 5: Execute rate query and extract values
+            try (ResultSet rs = psRate.executeQuery()) {
+                if (!rs.next()) {
+                    JOptionPane.showMessageDialog(null, "No rate info for " + company);
+                    return; // Stop if company not found
+                }
+                rate        = rs.getDouble("client_rate");
+                ratePerDay  = rs.getDouble("client_rate_per_day");
+                clientId    = rs.getInt("idclient_main");
             }
 
-            document.add(pdfTable);
-            document.add(new com.itextpdf.text.Paragraph("Sous Total: " + subTotal + " €"));
-            document.add(new com.itextpdf.text.Paragraph("TVA non applicable (article 293B du CGI)"));
-            document.add(new com.itextpdf.text.Paragraph("Fait à Balma - " + java.time.LocalDate.now()));
+            // Step 6: Get latest bill number for this client
+            try (
+                    PreparedStatement psMaxBill = conn.prepareStatement(maxBillSql)
+            ) {
 
-            document.close();
-            javax.swing.JOptionPane.showMessageDialog(null, "PDF exported successfully!");
-        } catch (Exception ex) {
+                try (ResultSet rsMax = psMaxBill.executeQuery()) {
+                    if (rsMax.next()) {
+                        bill_no = rsMax.getDouble("max_bill"); // If no rows exist, will default to 0
+                    } else {
+                        bill_no = 1;
+                    }
+                }
+            }
+
+            // Step 7: Load billing entries between selected dates
+            try (
+                    PreparedStatement psBill = conn.prepareStatement(billSql)
+            ) {
+                psBill.setInt(1, clientId);
+                psBill.setDate(2, new java.sql.Date(fromDate.getTime())); // Start date
+                psBill.setDate(3, new java.sql.Date(toDate.getTime()));   // End date
+
+                try (ResultSet rs2 = psBill.executeQuery()) {
+                    boolean anyRows = false;
+
+                    while (rs2.next()) {
+                        anyRows = true;
+
+                        String service  = rs2.getString("service_rendered");
+                        int unitDay     = rs2.getInt("UnitDay");              // 1 = day rate, 0 = hour rate
+                        int qty         = rs2.getInt("workedDayOrHours");
+                        double tarif    = (unitDay == 1) ? ratePerDay : rate; // Choose rate based on unit
+                        double total    = tarif * qty;
+
+                        // Add row to table
+                        model.addRow(new Object[]{service, tarif, qty, total});
+                    }
+
+                    // 🗨 If no matching billing data, notify user
+                    if (!anyRows) {
+                        JOptionPane.showMessageDialog(null,
+                                "No billing entries found for this company in the selected date range.");
+                    }
+                }
+            }
+
+        } catch (SQLException ex) {
+            // 💥 Handle database errors gracefully
             ex.printStackTrace();
-            javax.swing.JOptionPane.showMessageDialog(null, "Error: " + ex.getMessage());
+            JOptionPane.showMessageDialog(null,
+                    "Database error: " + ex.getMessage(),
+                    "SQL Error", JOptionPane.ERROR_MESSAGE
+            );
         }
     }
+
 }
