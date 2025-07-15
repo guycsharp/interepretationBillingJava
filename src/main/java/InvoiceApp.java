@@ -229,8 +229,10 @@ public class InvoiceApp {
                     PreparedStatement psBill = conn.prepareStatement(billSql)
             ) {
                 psBill.setInt(1, clientId);
-                psBill.setDate(2, new java.sql.Date(fromDate.getTime())); // Start date
-                psBill.setDate(3, new java.sql.Date(toDate.getTime()));   // End date
+                if (!ignoreDateCheckbox.isSelected()) {
+                    psBill.setDate(2, new java.sql.Date(fromDate.getTime())); // Start date
+                    psBill.setDate(3, new java.sql.Date(toDate.getTime()));   // End date
+                }
 
                 try (ResultSet rs2 = psBill.executeQuery()) {
                     boolean anyRows = false;
@@ -240,7 +242,7 @@ public class InvoiceApp {
 
                         String service  = rs2.getString("service_rendered");
                         int unitDay     = rs2.getInt("UnitDay");              // 1 = day rate, 0 = hour rate
-                        int qty         = rs2.getInt("workedDayOrHours");
+                        int qty         = (unitDay == 1) ? 1 : rs2.getInt("workedDayOrHours");
                         double tarif    = (unitDay == 1) ? ratePerDay : rate; // Choose rate based on unit
                         double total    = tarif * qty;
 
@@ -252,7 +254,8 @@ public class InvoiceApp {
                     if (!anyRows) {
                         JOptionPane.showMessageDialog(null,
                                 "No billing entries found for this company in the selected date range. ");
-                        //+ psBill.toString());
+                        // + psBill.toString())
+                        ;
                     }
                 }
             }
