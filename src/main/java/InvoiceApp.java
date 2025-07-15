@@ -19,6 +19,7 @@ public class InvoiceApp {
     public static JComboBox<String> companyComboBox;
     public static JSpinner fromDateSpinner, toDateSpinner;
     public static double bill_no;
+    public static String clientAdd;
     private static JCheckBox ignoreDateCheckbox;
     private static JCheckBox ignorePaidCheckbox;
 
@@ -112,7 +113,7 @@ public class InvoiceApp {
         loadButton.addActionListener(e -> loadData());
 
         // 📤 Export to PDF using separate class
-        exportButton.addActionListener(e -> PDFCreator.exportPDF(frame, bill_no + 1));
+        exportButton.addActionListener(e -> PDFCreator.exportPDF(frame, bill_no + 1, clientAdd));
 
         frame.setVisible(true);
     }
@@ -166,7 +167,7 @@ public class InvoiceApp {
         Date toDate = ((SpinnerDateModel) toDateSpinner.getModel()).getDate();
 
         // 🧾 Step 3: SQL queries
-        String rateSql = "SELECT client_rate, client_rate_per_day, idclient_main FROM client_main WHERE client_name = ?";
+        String rateSql = "SELECT client_rate, client_rate_per_day, idclient_main, client_address FROM client_main WHERE client_name = ?";
         String maxBillSql = "SELECT MAX(bill_no) as max_bill FROM bill_main ";
         // String billSql    = "SELECT service_rendered, UnitDay, workedDayOrHours FROM bill_main WHERE client_id = ? AND date_worked >= ? AND date_worked <= ?";
         StringBuilder billSqlBuilder = new StringBuilder(
@@ -199,6 +200,7 @@ public class InvoiceApp {
             double ratePerDay;
             int clientId;
 
+
             // Step 5: Execute rate query and extract values
             try (ResultSet rs = psRate.executeQuery()) {
                 if (!rs.next()) {
@@ -208,6 +210,7 @@ public class InvoiceApp {
                 rate = rs.getDouble("client_rate");
                 ratePerDay = rs.getDouble("client_rate_per_day");
                 clientId = rs.getInt("idclient_main");
+                clientAdd = rs.getString("client_address");
             }
 
             // Step 6: Get latest bill number for this client

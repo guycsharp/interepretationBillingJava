@@ -17,7 +17,7 @@ public class PDFCreator {
     /**
      * Exports the invoice table and header info to PDF.
      */
-    static void exportPDF(Component parent, double billNo) {
+    static void exportPDF(Component parent, double billNo, String address) {
         JFileChooser chooser = new JFileChooser();
         chooser.setDialogTitle("Save Invoice as PDF");
         chooser.setFileFilter(new FileNameExtensionFilter("PDF Documents", "pdf"));
@@ -45,7 +45,7 @@ public class PDFCreator {
             doc.add(new Paragraph(" "));
 
             // 🔖 Company and date range info
-            doc.add(new Paragraph("Entreprise : " + company));
+            doc.add(new Paragraph("Entreprise : " + company + address));
             doc.add(new Paragraph("Période : " + sdf.format(fromDate) + " – " + sdf.format(toDate)));
             doc.add(new Paragraph(" "));
 
