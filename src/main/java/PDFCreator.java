@@ -17,7 +17,7 @@ public class PDFCreator {
     /**
      * Exports the invoice table and header info to PDF.
      */
-    static void exportPDF(Component parent) {
+    static void exportPDF(Component parent, double billNo) {
         JFileChooser chooser = new JFileChooser();
         chooser.setDialogTitle("Save Invoice as PDF");
         chooser.setFileFilter(new FileNameExtensionFilter("PDF Documents", "pdf"));
@@ -38,7 +38,7 @@ public class PDFCreator {
             doc.open();
 
             // 📝 PDF Title
-            Paragraph title = new Paragraph("Facture", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18));
+            Paragraph title = new Paragraph("Facture:"+billNo, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18));
             title.setAlignment(Element.ALIGN_CENTER);
             doc.add(title);
             doc.add(new Paragraph(" "));

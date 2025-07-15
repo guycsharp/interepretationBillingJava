@@ -18,6 +18,7 @@ public class InvoiceApp {
     public static JTextField prestationField, tarifField, qtyField;
     public static JComboBox<String> companyComboBox;
     public static JSpinner fromDateSpinner, toDateSpinner;
+    public static double bill_no;
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(InvoiceApp::createAndShowGUI);
@@ -101,7 +102,7 @@ public class InvoiceApp {
         loadButton.addActionListener(e -> loadData());
 
         // 📤 Export to PDF using separate class
-        exportButton.addActionListener(e -> PDFCreator.exportPDF(frame));
+        exportButton.addActionListener(e -> PDFCreator.exportPDF(frame,bill_no+1));
 
         frame.setVisible(true);
     }
@@ -151,7 +152,7 @@ public class InvoiceApp {
         Date toDate = ((SpinnerDateModel) toDateSpinner.getModel()).getDate();
 
         String rateSql = "SELECT client_rate, client_rate_per_day, idclient_main FROM client_main WHERE client_name = ?";
-        String billSql = "SELECT service_rendered, UnitDay, workedDayOrHours FROM bill_main WHERE client_id = ? AND date_worked >= ? AND date_worked <= ?";
+        String billSql = "SELECT service_rendered, UnitDay, workedDayOrHours, idbill_main, bill_no FROM bill_main WHERE client_id = ? AND date_worked >= ? AND date_worked <= ?";
 
         try (Connection conn = MySQLConnector.getConnection();
              PreparedStatement psRate = conn.prepareStatement(rateSql)) {
@@ -159,6 +160,7 @@ public class InvoiceApp {
             psRate.setString(1, company);
             double rate, ratePerDay;
             int clientId;
+
 
             try (ResultSet rs = psRate.executeQuery()) {
                 if (!rs.next()) {
@@ -168,6 +170,7 @@ public class InvoiceApp {
                 rate = rs.getDouble("client_rate");
                 ratePerDay = rs.getDouble("client_rate_per_day");
                 clientId = rs.getInt("idclient_main");
+
             }
 
             try (PreparedStatement psBill = conn.prepareStatement(billSql)) {
@@ -185,7 +188,7 @@ public class InvoiceApp {
                         int qty = rs2.getInt("workedDayOrHours");
                         double tarif = (unitDay == 1) ? ratePerDay : rate;
                         double total = tarif * qty;
-
+                        bill_no = rs2.getDouble("bill_no");
                         model.addRow(new Object[]{service, tarif, qty, total});
                     }
 
