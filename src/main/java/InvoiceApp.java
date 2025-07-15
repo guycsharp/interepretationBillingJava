@@ -112,7 +112,7 @@ public class InvoiceApp {
         loadButton.addActionListener(e -> loadData());
 
         // 📤 Export to PDF using separate class
-        exportButton.addActionListener(e -> PDFCreator.exportPDF(frame,bill_no+1));
+        exportButton.addActionListener(e -> PDFCreator.exportPDF(frame, bill_no + 1));
 
         frame.setVisible(true);
     }
@@ -161,19 +161,19 @@ public class InvoiceApp {
         model.setRowCount(0);
 
         // 🏢 Step 2: Get selected company and date range from UI
-        String company   = (String) companyComboBox.getSelectedItem();
-        Date fromDate    = ((SpinnerDateModel) fromDateSpinner.getModel()).getDate();
-        Date toDate      = ((SpinnerDateModel) toDateSpinner.getModel()).getDate();
+        String company = (String) companyComboBox.getSelectedItem();
+        Date fromDate = ((SpinnerDateModel) fromDateSpinner.getModel()).getDate();
+        Date toDate = ((SpinnerDateModel) toDateSpinner.getModel()).getDate();
 
         // 🧾 Step 3: SQL queries
-        String rateSql    = "SELECT client_rate, client_rate_per_day, idclient_main FROM client_main WHERE client_name = ?";
+        String rateSql = "SELECT client_rate, client_rate_per_day, idclient_main FROM client_main WHERE client_name = ?";
         String maxBillSql = "SELECT MAX(bill_no) as max_bill FROM bill_main ";
         // String billSql    = "SELECT service_rendered, UnitDay, workedDayOrHours FROM bill_main WHERE client_id = ? AND date_worked >= ? AND date_worked <= ?";
         StringBuilder billSqlBuilder = new StringBuilder(
                 "SELECT service_rendered, UnitDay, workedDayOrHours FROM bill_main WHERE 1=1"
         );
 
-        if(!"All".equals(company)){
+        if (!"All".equals(company)) {
             billSqlBuilder.append(" AND client_id = ?");
         }
         if (!ignoreDateCheckbox.isSelected()) {
@@ -205,9 +205,9 @@ public class InvoiceApp {
                     JOptionPane.showMessageDialog(null, "No rate info for " + company);
                     return; // Stop if company not found
                 }
-                rate        = rs.getDouble("client_rate");
-                ratePerDay  = rs.getDouble("client_rate_per_day");
-                clientId    = rs.getInt("idclient_main");
+                rate = rs.getDouble("client_rate");
+                ratePerDay = rs.getDouble("client_rate_per_day");
+                clientId = rs.getInt("idclient_main");
             }
 
             // Step 6: Get latest bill number for this client
@@ -240,11 +240,11 @@ public class InvoiceApp {
                     while (rs2.next()) {
                         anyRows = true;
 
-                        String service  = rs2.getString("service_rendered");
-                        int unitDay     = rs2.getInt("UnitDay");              // 1 = day rate, 0 = hour rate
-                        int qty         = (unitDay == 1) ? 1 : rs2.getInt("workedDayOrHours");
-                        double tarif    = (unitDay == 1) ? ratePerDay : rate; // Choose rate based on unit
-                        double total    = tarif * qty;
+                        String service = rs2.getString("service_rendered");
+                        int unitDay = rs2.getInt("UnitDay");              // 1 = day rate, 0 = hour rate
+                        int qty = (unitDay == 1) ? 1 : rs2.getInt("workedDayOrHours");
+                        double tarif = (unitDay == 1) ? ratePerDay : rate; // Choose rate based on unit
+                        double total = tarif * qty;
 
                         // Add row to table
                         model.addRow(new Object[]{service, tarif, qty, total});

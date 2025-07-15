@@ -29,7 +29,7 @@ public class PDFCreator {
         // 🏢 Access selected company and date range from InvoiceApp
         String company = (String) InvoiceApp.companyComboBox.getSelectedItem();
         Date fromDate = ((SpinnerDateModel) InvoiceApp.fromDateSpinner.getModel()).getDate();
-        Date toDate   = ((SpinnerDateModel) InvoiceApp.toDateSpinner.getModel()).getDate();
+        Date toDate = ((SpinnerDateModel) InvoiceApp.toDateSpinner.getModel()).getDate();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
         try {
@@ -38,8 +38,8 @@ public class PDFCreator {
             doc.open();
 
             // 📝 PDF Title
-            String billNum = billNo+"";
-            Paragraph title = new Paragraph("Facture:"+billNum.substring(0,billNum.indexOf('.')), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18));
+            String billNum = billNo + "";
+            Paragraph title = new Paragraph("Facture:" + billNum.substring(0, billNum.indexOf('.')), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18));
             title.setAlignment(Element.ALIGN_CENTER);
             doc.add(title);
             doc.add(new Paragraph(" "));
@@ -89,7 +89,10 @@ public class PDFCreator {
 
             // 📝 Footer notes
             doc.add(new Paragraph(" "));
-            doc.add(new Paragraph("TVA non applicable (article 293B du CGI)"));
+            doc.add(new Paragraph(" "));
+            Paragraph vatNote = new Paragraph("TVA non applicable (article 293B du CGI)");
+            vatNote.setAlignment(Element.ALIGN_CENTER);
+            doc.add(vatNote);
             doc.add(new Paragraph("Fait à Balma - " + java.time.LocalDate.now()));
 
             // 🔚 Add image at the end
