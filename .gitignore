@@ -29,5 +29,6 @@ bin/
 .DS_Store
 
 resources/config.properties
+resources/RojiSig.png
 build
 .gradle

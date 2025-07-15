@@ -38,7 +38,8 @@ public class PDFCreator {
             doc.open();
 
             // 📝 PDF Title
-            Paragraph title = new Paragraph("Facture:"+billNo, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18));
+            String billNum = billNo+"";
+            Paragraph title = new Paragraph("Facture:"+billNum.substring(0,billNum.indexOf('.')), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18));
             title.setAlignment(Element.ALIGN_CENTER);
             doc.add(title);
             doc.add(new Paragraph(" "));
@@ -90,6 +91,17 @@ public class PDFCreator {
             doc.add(new Paragraph(" "));
             doc.add(new Paragraph("TVA non applicable (article 293B du CGI)"));
             doc.add(new Paragraph("Fait à Balma - " + java.time.LocalDate.now()));
+
+            // 🔚 Add image at the end
+            try {
+                com.itextpdf.text.Image image = com.itextpdf.text.Image.getInstance("path/to/image.png");
+                image.scaleToFit(100, 50);
+                image.setAlignment(Element.ALIGN_CENTER);
+                doc.add(image);
+            } catch (Exception e) {
+                e.printStackTrace();
+                doc.add(new Paragraph("⚠ Failed to load image."));
+            }
 
             doc.close();
             JOptionPane.showMessageDialog(parent, "PDF exported successfully to:\n" + path);
