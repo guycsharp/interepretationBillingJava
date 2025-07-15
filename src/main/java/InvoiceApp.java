@@ -19,6 +19,9 @@ public class InvoiceApp {
     public static JComboBox<String> companyComboBox;
     public static JSpinner fromDateSpinner, toDateSpinner;
     public static double bill_no;
+    private static JCheckBox ignoreDateCheckbox;
+    private static JCheckBox ignorePaidCheckbox;
+
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(InvoiceApp::createAndShowGUI);
@@ -44,6 +47,13 @@ public class InvoiceApp {
         filterPanel.add(new JLabel("To:"));
         toDateSpinner = makeDateSpinner();
         filterPanel.add(toDateSpinner);
+
+        ignoreDateCheckbox = new JCheckBox("Ignore Date");
+        filterPanel.add(ignoreDateCheckbox);
+
+        ignorePaidCheckbox = new JCheckBox("Ignore Paid");
+        filterPanel.add(ignorePaidCheckbox);
+
 
         frame.add(filterPanel, BorderLayout.NORTH);
 
@@ -112,6 +122,7 @@ public class InvoiceApp {
      */
     private static JComboBox<String> createCompanyComboBox() {
         List<String> names = new ArrayList<>();
+        // names.add("All");
         String sql = "SELECT client_name FROM client_main WHERE soft_delete IS NULL OR soft_delete = 0 ORDER BY client_name";
 
         try (Connection conn = MySQLConnector.getConnection();
@@ -121,6 +132,7 @@ public class InvoiceApp {
             while (rs.next()) {
                 names.add(rs.getString("client_name"));
             }
+
         } catch (SQLException e) {
             e.printStackTrace();
             names.add("<< error loading companies >>");
@@ -156,7 +168,23 @@ public class InvoiceApp {
         // 🧾 Step 3: SQL queries
         String rateSql    = "SELECT client_rate, client_rate_per_day, idclient_main FROM client_main WHERE client_name = ?";
         String maxBillSql = "SELECT MAX(bill_no) as max_bill FROM bill_main ";
-        String billSql    = "SELECT service_rendered, UnitDay, workedDayOrHours FROM bill_main WHERE client_id = ? AND date_worked >= ? AND date_worked <= ?";
+        // String billSql    = "SELECT service_rendered, UnitDay, workedDayOrHours FROM bill_main WHERE client_id = ? AND date_worked >= ? AND date_worked <= ?";
+        StringBuilder billSqlBuilder = new StringBuilder(
+                "SELECT service_rendered, UnitDay, workedDayOrHours FROM bill_main WHERE 1=1"
+        );
+
+        if(!"All".equals(company)){
+            billSqlBuilder.append(" AND client_id = ?");
+        }
+        if (!ignoreDateCheckbox.isSelected()) {
+            billSqlBuilder.append(" AND date_worked >= ? AND date_worked <= ?");
+        }
+
+        if (!ignorePaidCheckbox.isSelected()) {
+            billSqlBuilder.append(" AND paid != 1"); // adjust logic to match your schema
+        }
+
+        String billSql = billSqlBuilder.toString();
 
         try (
                 Connection conn = MySQLConnector.getConnection();
@@ -223,7 +251,8 @@ public class InvoiceApp {
                     // 🗨 If no matching billing data, notify user
                     if (!anyRows) {
                         JOptionPane.showMessageDialog(null,
-                                "No billing entries found for this company in the selected date range.");
+                                "No billing entries found for this company in the selected date range. ");
+                        //+ psBill.toString());
                     }
                 }
             }
