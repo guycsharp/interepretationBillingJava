@@ -94,9 +94,9 @@ public class PDFCreator {
 
             // 🔚 Add image at the end
             try {
-                com.itextpdf.text.Image image = com.itextpdf.text.Image.getInstance("path/to/image.png");
+                com.itextpdf.text.Image image = com.itextpdf.text.Image.getInstance("resources/RojiSig.png");
                 image.scaleToFit(100, 50);
-                image.setAlignment(Element.ALIGN_CENTER);
+                image.setAlignment(Element.ALIGN_LEFT);
                 doc.add(image);
             } catch (Exception e) {
                 e.printStackTrace();
