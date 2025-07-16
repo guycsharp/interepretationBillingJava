@@ -23,6 +23,7 @@ public class InvoiceApp {
     private static JCheckBox ignoreDateCheckbox;
     private static JCheckBox ignorePaidCheckbox;
     private static final String myaddress = ConfigLoader.get("db.address");
+    private static final int width = 800, height = 600;
 
 
     public static void main(String[] args) {
@@ -32,7 +33,7 @@ public class InvoiceApp {
     private static void createAndShowGUI() {
         JFrame frame = new JFrame("Billing Software");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(900, 600);
+        frame.setSize(width, height);
         frame.setLocationRelativeTo(null);
         frame.setLayout(new BorderLayout(10, 10));
 
@@ -69,7 +70,9 @@ public class InvoiceApp {
         tarifField = new JTextField();
         qtyField = new JTextField();
 
-        JPanel inputPanel = new JPanel(new GridLayout(2, 5, 10, 5));
+        // JPanel inputPanel = new JPanel(new GridLayout(2, 5, 10, 5));
+        JPanel inputPanel = new JPanel(new GridLayout(1, 6, 10, 5));
+
         inputPanel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
         inputPanel.add(new JLabel("Prestation"));
         inputPanel.add(prestationField);
