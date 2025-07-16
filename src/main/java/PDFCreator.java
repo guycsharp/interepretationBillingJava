@@ -30,7 +30,7 @@ public class PDFCreator {
      */
 
 
-    static void exportPDF(Component parent, double billNo, String address, String myaddress) {
+    static void exportPDF(Component parent, double billNo, String address, String myaddress, String date_worked, String language) {
         JFileChooser chooser = new JFileChooser();
         chooser.setDialogTitle("Save Invoice as PDF");
         chooser.setFileFilter(new FileNameExtensionFilter("PDF Documents", "pdf"));
@@ -59,7 +59,7 @@ public class PDFCreator {
             doc.add(addParagraph(myaddress, Element.ALIGN_LEFT));
             // 🔖 Company and date range info
             doc.add(addParagraph(textNewLineReplaceDelimiter(company + "\n" + address,'\n',','), Element.ALIGN_RIGHT));
-            doc.add(new Paragraph("Période : " + sdf.format(fromDate) + " – " + sdf.format(toDate)));
+            // doc.add(new Paragraph("Période : " + sdf.format(fromDate) + " – " + sdf.format(toDate)));
             doc.add(new Paragraph(" "));
 
             // 📋 Invoice table
@@ -74,7 +74,7 @@ public class PDFCreator {
 
             // ➕ Add invoice rows from the table model
             for (int i = 0; i < InvoiceApp.model.getRowCount(); i++) {
-                pdfTable.addCell(InvoiceApp.model.getValueAt(i, 0).toString());
+                pdfTable.addCell(InvoiceApp.model.getValueAt(i, 0).toString() + " en " + language + "\n" + date_worked.substring(0,11));
                 pdfTable.addCell(InvoiceApp.model.getValueAt(i, 1).toString());
                 pdfTable.addCell(InvoiceApp.model.getValueAt(i, 2).toString());
                 pdfTable.addCell(InvoiceApp.model.getValueAt(i, 3).toString());

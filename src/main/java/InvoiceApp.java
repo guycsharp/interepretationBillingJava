@@ -19,10 +19,10 @@ public class InvoiceApp {
     public static JComboBox<String> companyComboBox;
     public static JSpinner fromDateSpinner, toDateSpinner;
     public static double bill_no;
-    public static String clientAdd;
+    public static String clientAdd, languageInterpret, date_worked;
     private static JCheckBox ignoreDateCheckbox;
     private static JCheckBox ignorePaidCheckbox;
-    private static final String myaddress      = ConfigLoader.get("db.address");
+    private static final String myaddress = ConfigLoader.get("db.address");
 
 
     public static void main(String[] args) {
@@ -114,7 +114,7 @@ public class InvoiceApp {
         loadButton.addActionListener(e -> loadData());
 
         // 📤 Export to PDF using separate class
-        exportButton.addActionListener(e -> PDFCreator.exportPDF(frame, bill_no + 1, clientAdd, myaddress));
+        exportButton.addActionListener(e -> PDFCreator.exportPDF(frame, bill_no + 1, clientAdd, myaddress, date_worked, languageInterpret));
 
         frame.setVisible(true);
     }
@@ -172,7 +172,7 @@ public class InvoiceApp {
         String maxBillSql = "SELECT MAX(bill_no) as max_bill FROM bill_main ";
         // String billSql    = "SELECT service_rendered, UnitDay, workedDayOrHours FROM bill_main WHERE client_id = ? AND date_worked >= ? AND date_worked <= ?";
         StringBuilder billSqlBuilder = new StringBuilder(
-                "SELECT service_rendered, UnitDay, workedDayOrHours FROM bill_main WHERE 1=1"
+                "SELECT service_rendered, UnitDay, workedDayOrHours, date_worked, language FROM bill_main WHERE 1=1"
         );
 
         if (!"All".equals(company)) {
@@ -249,6 +249,8 @@ public class InvoiceApp {
                         int qty = (unitDay == 1) ? 1 : rs2.getInt("workedDayOrHours");
                         double tarif = (unitDay == 1) ? ratePerDay : rate; // Choose rate based on unit
                         double total = tarif * qty;
+                        date_worked = rs2.getString("date_worked");
+                        languageInterpret = rs2.getString("language");
 
                         // Add row to table
                         model.addRow(new Object[]{service, tarif, qty, total});
