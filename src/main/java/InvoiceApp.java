@@ -60,7 +60,7 @@ public class InvoiceApp {
         frame.add(filterPanel, BorderLayout.NORTH);
 
         // 📋 Center: invoice table
-        model = new DefaultTableModel(new Object[]{"Prestation", "Tarif (€)", "Quantité", "Total (€)"}, 0);
+        model = new DefaultTableModel(new Object[]{"Prestation", "Tarif (€)", "Quantité", "Total (€)", "Date Worked", "Language"}, 0);
         table = new JTable(model);
         frame.add(new JScrollPane(table), BorderLayout.CENTER);
 
@@ -114,7 +114,7 @@ public class InvoiceApp {
         loadButton.addActionListener(e -> loadData());
 
         // 📤 Export to PDF using separate class
-        exportButton.addActionListener(e -> PDFCreator.exportPDF(frame, bill_no + 1, clientAdd, myaddress, date_worked, languageInterpret));
+        exportButton.addActionListener(e -> PDFCreator.exportPDF(frame, bill_no + 1, clientAdd, myaddress));
 
         frame.setVisible(true);
     }
@@ -244,16 +244,16 @@ public class InvoiceApp {
                     while (rs2.next()) {
                         anyRows = true;
 
-                        String service = rs2.getString("service_rendered");
+                        String service = rs2.getString("service_rendered"); //0
                         int unitDay = rs2.getInt("UnitDay");              // 1 = day rate, 0 = hour rate
-                        int qty = (unitDay == 1) ? 1 : rs2.getInt("workedDayOrHours");
-                        double tarif = (unitDay == 1) ? ratePerDay : rate; // Choose rate based on unit
-                        double total = tarif * qty;
-                        date_worked = rs2.getString("date_worked");
-                        languageInterpret = rs2.getString("language");
+                        int qty = (unitDay == 1) ? 1 : rs2.getInt("workedDayOrHours"); //2
+                        double tarif = (unitDay == 1) ? ratePerDay : rate; // Choose rate based on unit 3
+                        double total = tarif * qty; //4
+                        date_worked = rs2.getString("date_worked").substring(0,11); //5
+                        languageInterpret = rs2.getString("language"); //6
 
                         // Add row to table
-                        model.addRow(new Object[]{service, tarif, qty, total});
+                        model.addRow(new Object[]{service, tarif, qty, total, date_worked, languageInterpret});
                     }
 
                     // 🗨 If no matching billing data, notify user
