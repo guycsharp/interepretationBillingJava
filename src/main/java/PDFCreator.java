@@ -14,7 +14,9 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
+import java.util.Locale;
 
 public class PDFCreator {
 
@@ -46,7 +48,7 @@ public class PDFCreator {
      * @param address    the client’s address block (may contain "\n")
      * @param myaddress  our own address block (may contain "\n")
      */
-    static void exportPDF(Component parent, double billNo, String address, String myaddress) {
+    static void exportPDF(Component parent, double billNo, String address, String myaddress,  Date billedOn) {
         // STEP 1: Ask the user where to save the PDF
         JFileChooser chooser = new JFileChooser();
         chooser.setDialogTitle("Save Invoice as PDF");
@@ -170,7 +172,7 @@ public class PDFCreator {
             vatNote.setAlignment(Element.ALIGN_CENTER);
             doc.add(vatNote);
 
-            Paragraph placeDate = new Paragraph("Fait à Balma - " + java.time.LocalDate.now());
+            Paragraph placeDate = new Paragraph("Fait à Balma - " + (new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH)).format(billedOn));
             placeDate.setAlignment(Element.ALIGN_CENTER);
             doc.add(placeDate);
 
