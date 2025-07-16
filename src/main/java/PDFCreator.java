@@ -14,10 +14,23 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class PDFCreator {
+
+    public static String textNewLineReplaceDelimiter(String sourceText, char replaceBy, char replaceChar) {
+        return sourceText.replace(replaceChar, replaceBy);
+    }
+
+    public static Paragraph addParagraph(String text, int alignment) {
+        Paragraph p = new Paragraph(textNewLineReplaceDelimiter(text,'\n',','));
+        p.setAlignment(alignment); // Element.ALIGN_LEFT, ALIGN_CENTER, etc.
+        return p;
+    }
+
     /**
      * Exports the invoice table and header info to PDF.
      */
-    static void exportPDF(Component parent, double billNo, String address) {
+
+
+    static void exportPDF(Component parent, double billNo, String address, String myaddress) {
         JFileChooser chooser = new JFileChooser();
         chooser.setDialogTitle("Save Invoice as PDF");
         chooser.setFileFilter(new FileNameExtensionFilter("PDF Documents", "pdf"));
@@ -43,9 +56,9 @@ public class PDFCreator {
             title.setAlignment(Element.ALIGN_CENTER);
             doc.add(title);
             doc.add(new Paragraph(" "));
-
+            doc.add(addParagraph(myaddress, Element.ALIGN_LEFT));
             // 🔖 Company and date range info
-            doc.add(new Paragraph("Entreprise : " + company + address));
+            doc.add(addParagraph(textNewLineReplaceDelimiter(company + "\n" + address,'\n',','), Element.ALIGN_RIGHT));
             doc.add(new Paragraph("Période : " + sdf.format(fromDate) + " – " + sdf.format(toDate)));
             doc.add(new Paragraph(" "));
 

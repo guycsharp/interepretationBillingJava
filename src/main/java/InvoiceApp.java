@@ -22,6 +22,7 @@ public class InvoiceApp {
     public static String clientAdd;
     private static JCheckBox ignoreDateCheckbox;
     private static JCheckBox ignorePaidCheckbox;
+    private static final String myaddress      = ConfigLoader.get("db.address");
 
 
     public static void main(String[] args) {
@@ -113,7 +114,7 @@ public class InvoiceApp {
         loadButton.addActionListener(e -> loadData());
 
         // 📤 Export to PDF using separate class
-        exportButton.addActionListener(e -> PDFCreator.exportPDF(frame, bill_no + 1, clientAdd));
+        exportButton.addActionListener(e -> PDFCreator.exportPDF(frame, bill_no + 1, clientAdd, myaddress));
 
         frame.setVisible(true);
     }
