@@ -19,8 +19,10 @@ public class InvoiceApp {
     public static JComboBox<String> companyComboBox;
     public static JSpinner fromDateSpinner, toDateSpinner;
     public static double bill_no;
+    public static String clientAdd, languageInterpret, date_worked;
     private static JCheckBox ignoreDateCheckbox;
     private static JCheckBox ignorePaidCheckbox;
+    private static final String myaddress = ConfigLoader.get("db.address");
 
 
     public static void main(String[] args) {
@@ -112,7 +114,7 @@ public class InvoiceApp {
         loadButton.addActionListener(e -> loadData());
 
         // 📤 Export to PDF using separate class
-        exportButton.addActionListener(e -> PDFCreator.exportPDF(frame, bill_no + 1));
+        exportButton.addActionListener(e -> PDFCreator.exportPDF(frame, bill_no + 1, clientAdd, myaddress, date_worked, languageInterpret));
 
         frame.setVisible(true);
     }
@@ -166,11 +168,11 @@ public class InvoiceApp {
         Date toDate = ((SpinnerDateModel) toDateSpinner.getModel()).getDate();
 
         // 🧾 Step 3: SQL queries
-        String rateSql = "SELECT client_rate, client_rate_per_day, idclient_main FROM client_main WHERE client_name = ?";
+        String rateSql = "SELECT client_rate, client_rate_per_day, idclient_main, client_address FROM client_main WHERE client_name = ?";
         String maxBillSql = "SELECT MAX(bill_no) as max_bill FROM bill_main ";
         // String billSql    = "SELECT service_rendered, UnitDay, workedDayOrHours FROM bill_main WHERE client_id = ? AND date_worked >= ? AND date_worked <= ?";
         StringBuilder billSqlBuilder = new StringBuilder(
-                "SELECT service_rendered, UnitDay, workedDayOrHours FROM bill_main WHERE 1=1"
+                "SELECT service_rendered, UnitDay, workedDayOrHours, date_worked, language FROM bill_main WHERE 1=1"
         );
 
         if (!"All".equals(company)) {
@@ -199,6 +201,7 @@ public class InvoiceApp {
             double ratePerDay;
             int clientId;
 
+
             // Step 5: Execute rate query and extract values
             try (ResultSet rs = psRate.executeQuery()) {
                 if (!rs.next()) {
@@ -208,6 +211,7 @@ public class InvoiceApp {
                 rate = rs.getDouble("client_rate");
                 ratePerDay = rs.getDouble("client_rate_per_day");
                 clientId = rs.getInt("idclient_main");
+                clientAdd = rs.getString("client_address");
             }
 
             // Step 6: Get latest bill number for this client
@@ -245,6 +249,8 @@ public class InvoiceApp {
                         int qty = (unitDay == 1) ? 1 : rs2.getInt("workedDayOrHours");
                         double tarif = (unitDay == 1) ? ratePerDay : rate; // Choose rate based on unit
                         double total = tarif * qty;
+                        date_worked = rs2.getString("date_worked");
+                        languageInterpret = rs2.getString("language");
 
                         // Add row to table
                         model.addRow(new Object[]{service, tarif, qty, total});
