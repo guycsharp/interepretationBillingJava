@@ -81,9 +81,9 @@ public class InvoiceApp {
         inputPanel.add(new JLabel("Quantité"));
         inputPanel.add(qtyField);
 
-        JButton addButton = new JButton("Add Row");
-        JButton loadButton = new JButton("Load from DB");
-        JButton exportButton = new JButton("Export to PDF");
+        JButton addButton = new JButton("Add");
+        JButton loadButton = new JButton("Load");
+        JButton exportButton = new JButton("Export");
 
         inputPanel.add(addButton);
         filterPanel.add(loadButton);
