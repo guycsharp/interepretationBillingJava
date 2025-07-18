@@ -120,7 +120,16 @@ public class InvoiceApp {
         });
 
         // 🔄 Load rows from database
-        loadButton.addActionListener(e -> loadData());
+        // loadButton.addActionListener(e -> loadData());
+        loadButton.addActionListener(e -> InvoiceDataLoader.loadInvoiceData(
+                (String) companyComboBox.getSelectedItem(),
+                ((SpinnerDateModel) fromDateSpinner.getModel()).getDate(),
+                ((SpinnerDateModel) toDateSpinner.getModel()).getDate(),
+                ignoreDateCheckbox.isSelected(),
+                ignorePaidCheckbox.isSelected(),
+                model
+        ));
+
 
         // 📤 Export to PDF using separate class
         exportButton.addActionListener(e -> PDFCreator.exportPDF(frame, bill_no + 1, clientAdd, myaddress, ((SpinnerDateModel) billedOnSpinner.getModel()).getDate()));
@@ -163,6 +172,7 @@ public class InvoiceApp {
         spinner.setEditor(new JSpinner.DateEditor(spinner, "yyyy-MM-dd"));
         return spinner;
     }
+
 
     /**
      * Loads rows from bill_main using selected client and date range.
