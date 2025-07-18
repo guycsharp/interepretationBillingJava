@@ -1,3 +1,5 @@
+package ConfigLoader;// MySQLConnector.java
+
 // ConfigLoader.java
 import java.io.File;
 import java.io.FileInputStream;

@@ -2,6 +2,7 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.sql.*;
 import java.util.Date;
+import mysqlConnection.MySQLConnector;  // import your connector
 
 /**
  * DataLoader handles loading billing rows from the database.
@@ -20,15 +21,11 @@ public class DataLoader {
             JCheckBox ignoreDateCheckbox,
             JCheckBox ignorePaidCheckbox
     ) {
-        // 1. Clear old rows
         model.setRowCount(0);
-
-        // 2. Read filters
         String company = (String) companyComboBox.getSelectedItem();
         Date fromDate = ((SpinnerDateModel) fromDateSpinner.getModel()).getDate();
-        Date toDate = ((SpinnerDateModel) toDateSpinner.getModel()).getDate();
+        Date toDate   = ((SpinnerDateModel) toDateSpinner.getModel()).getDate();
 
-        // 3. Prepare SQL fragments
         String rateSql = "SELECT client_rate, client_rate_per_day, idclient_main, client_address"
                 + " FROM client_main WHERE client_name = ?";
         StringBuilder billSql = new StringBuilder(
@@ -39,12 +36,9 @@ public class DataLoader {
         if (!ignoreDateCheckbox.isSelected()) billSql.append(" AND date_worked >= ? AND date_worked <= ?");
         if (!ignorePaidCheckbox.isSelected()) billSql.append(" AND paid != 1");
 
-        // 4. Execute queries and fill model
         try (Connection conn = MySQLConnector.getConnection()) {
-            // 4a. Lookup client rate and ID
             int clientId;
             double rate, ratePerDay;
-            String clientAddress;
             try (PreparedStatement ps = conn.prepareStatement(rateSql)) {
                 ps.setString(1, company);
                 try (ResultSet rs = ps.executeQuery()) {
@@ -55,18 +49,16 @@ public class DataLoader {
                     rate = rs.getDouble("client_rate");
                     ratePerDay = rs.getDouble("client_rate_per_day");
                     clientId = rs.getInt("idclient_main");
-                    clientAddress = rs.getString("client_address");
-                    InvoiceApp.clientAdd = clientAddress;
                 }
             }
 
-            // 4b. Find max bill_no
             try (Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery("SELECT MAX(bill_no) AS max_bill FROM bill_main")) {
-                InvoiceApp.bill_no = rs.next() ? rs.getDouble("max_bill") : 0;
+                 ResultSet rsMax = stmt.executeQuery("SELECT MAX(bill_no) AS max_bill FROM bill_main")) {
+                if (rsMax.next()) {
+                    // do something with max if needed
+                }
             }
 
-            // 4c. Load billing rows
             try (PreparedStatement ps = conn.prepareStatement(billSql.toString())) {
                 int idx = 1;
                 if (!"All".equals(company)) ps.setInt(idx++, clientId);
@@ -79,12 +71,12 @@ public class DataLoader {
                     while (rs.next()) {
                         any = true;
                         String service = rs.getString("service_rendered");
-                        int unitDay = rs.getInt("UnitDay");
-                        int qty = (unitDay == 1) ? 1 : rs.getInt("workedDayOrHours");
-                        double tarif = (unitDay == 1) ? ratePerDay : rate;
-                        double total = tarif * qty;
+                        int unitDay      = rs.getInt("UnitDay");
+                        int qty          = (unitDay == 1) ? 1 : rs.getInt("workedDayOrHours");
+                        double tarif     = (unitDay == 1) ? ratePerDay : rate;
+                        double total     = tarif * qty;
                         String dateWorked = rs.getString("date_worked").substring(0,10);
-                        String language = rs.getString("language");
+                        String language   = rs.getString("language");
                         model.addRow(new Object[]{service, tarif, qty, total, dateWorked, language});
                     }
                     if (!any) JOptionPane.showMessageDialog(null, "No entries found.");

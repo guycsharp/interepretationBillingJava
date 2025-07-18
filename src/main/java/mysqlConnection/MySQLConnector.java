@@ -1,8 +1,9 @@
-// MySQLConnector.java
+package mysqlConnection;// MySQLConnector.java
 // Provides a simple method to get a JDBC Connection using credentials from ConfigLoader
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import ConfigLoader.ConfigLoader;
 
 public class MySQLConnector {
     // Load URL, username, and password from config.properties
