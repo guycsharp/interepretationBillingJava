@@ -17,13 +17,13 @@ public class InvoiceApp {
     public static DefaultTableModel model;
     public static JTextField prestationField, tarifField, qtyField;
     public static JComboBox<String> companyComboBox;
-    public static JSpinner fromDateSpinner, toDateSpinner;
+    public static JSpinner fromDateSpinner, toDateSpinner, billedOnSpinner;
     public static double bill_no;
     public static String clientAdd, languageInterpret, date_worked;
     private static JCheckBox ignoreDateCheckbox;
     private static JCheckBox ignorePaidCheckbox;
     private static final String myaddress = ConfigLoader.get("db.address");
-    private static final int width = 800, height = 600;
+    private static final int width = 900, height = 600;
 
 
     public static void main(String[] args) {
@@ -57,6 +57,12 @@ public class InvoiceApp {
         ignorePaidCheckbox = new JCheckBox("Ignore Paid");
         filterPanel.add(ignorePaidCheckbox);
 
+        JButton loadButton = new JButton("Load");
+        filterPanel.add(loadButton);
+
+        filterPanel.add(new JLabel("Billed On:"));
+        billedOnSpinner = makeDateSpinner();
+        filterPanel.add(billedOnSpinner);
 
         frame.add(filterPanel, BorderLayout.NORTH);
 
@@ -82,11 +88,11 @@ public class InvoiceApp {
         inputPanel.add(qtyField);
 
         JButton addButton = new JButton("Add");
-        JButton loadButton = new JButton("Load");
+
         JButton exportButton = new JButton("Export");
 
         inputPanel.add(addButton);
-        filterPanel.add(loadButton);
+
         inputPanel.add(exportButton);
         inputPanel.add(new JLabel()); // filler
 
@@ -117,7 +123,7 @@ public class InvoiceApp {
         loadButton.addActionListener(e -> loadData());
 
         // 📤 Export to PDF using separate class
-        exportButton.addActionListener(e -> PDFCreator.exportPDF(frame, bill_no + 1, clientAdd, myaddress));
+        exportButton.addActionListener(e -> PDFCreator.exportPDF(frame, bill_no + 1, clientAdd, myaddress, ((SpinnerDateModel) billedOnSpinner.getModel()).getDate()));
 
         frame.setVisible(true);
     }
