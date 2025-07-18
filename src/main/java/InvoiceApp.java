@@ -17,12 +17,13 @@ public class InvoiceApp {
     public static DefaultTableModel model;
     public static JTextField prestationField, tarifField, qtyField;
     public static JComboBox<String> companyComboBox;
-    public static JSpinner fromDateSpinner, toDateSpinner;
+    public static JSpinner fromDateSpinner, toDateSpinner, billedOnSpinner;
     public static double bill_no;
     public static String clientAdd, languageInterpret, date_worked;
     private static JCheckBox ignoreDateCheckbox;
     private static JCheckBox ignorePaidCheckbox;
     private static final String myaddress = ConfigLoader.get("db.address");
+    private static final int width = 900, height = 600;
 
 
     public static void main(String[] args) {
@@ -32,7 +33,7 @@ public class InvoiceApp {
     private static void createAndShowGUI() {
         JFrame frame = new JFrame("Billing Software");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(900, 600);
+        frame.setSize(width, height);
         frame.setLocationRelativeTo(null);
         frame.setLayout(new BorderLayout(10, 10));
 
@@ -56,11 +57,17 @@ public class InvoiceApp {
         ignorePaidCheckbox = new JCheckBox("Ignore Paid");
         filterPanel.add(ignorePaidCheckbox);
 
+        JButton loadButton = new JButton("Load");
+        filterPanel.add(loadButton);
+
+        filterPanel.add(new JLabel("Billed On:"));
+        billedOnSpinner = makeDateSpinner();
+        filterPanel.add(billedOnSpinner);
 
         frame.add(filterPanel, BorderLayout.NORTH);
 
         // 📋 Center: invoice table
-        model = new DefaultTableModel(new Object[]{"Prestation", "Tarif (€)", "Quantité", "Total (€)"}, 0);
+        model = new DefaultTableModel(new Object[]{"Prestation", "Tarif (€)", "Quantité", "Total (€)", "Date Worked", "Language"}, 0);
         table = new JTable(model);
         frame.add(new JScrollPane(table), BorderLayout.CENTER);
 
@@ -69,7 +76,9 @@ public class InvoiceApp {
         tarifField = new JTextField();
         qtyField = new JTextField();
 
-        JPanel inputPanel = new JPanel(new GridLayout(2, 5, 10, 5));
+        // JPanel inputPanel = new JPanel(new GridLayout(2, 5, 10, 5));
+        JPanel inputPanel = new JPanel(new GridLayout(1, 6, 10, 5));
+
         inputPanel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
         inputPanel.add(new JLabel("Prestation"));
         inputPanel.add(prestationField);
@@ -78,12 +87,12 @@ public class InvoiceApp {
         inputPanel.add(new JLabel("Quantité"));
         inputPanel.add(qtyField);
 
-        JButton addButton = new JButton("Add Row");
-        JButton loadButton = new JButton("Load from DB");
-        JButton exportButton = new JButton("Export to PDF");
+        JButton addButton = new JButton("Add");
+
+        JButton exportButton = new JButton("Export");
 
         inputPanel.add(addButton);
-        filterPanel.add(loadButton);
+
         inputPanel.add(exportButton);
         inputPanel.add(new JLabel()); // filler
 
@@ -114,7 +123,7 @@ public class InvoiceApp {
         loadButton.addActionListener(e -> loadData());
 
         // 📤 Export to PDF using separate class
-        exportButton.addActionListener(e -> PDFCreator.exportPDF(frame, bill_no + 1, clientAdd, myaddress, date_worked, languageInterpret));
+        exportButton.addActionListener(e -> PDFCreator.exportPDF(frame, bill_no + 1, clientAdd, myaddress, ((SpinnerDateModel) billedOnSpinner.getModel()).getDate()));
 
         frame.setVisible(true);
     }
@@ -244,16 +253,16 @@ public class InvoiceApp {
                     while (rs2.next()) {
                         anyRows = true;
 
-                        String service = rs2.getString("service_rendered");
+                        String service = rs2.getString("service_rendered"); //0
                         int unitDay = rs2.getInt("UnitDay");              // 1 = day rate, 0 = hour rate
-                        int qty = (unitDay == 1) ? 1 : rs2.getInt("workedDayOrHours");
-                        double tarif = (unitDay == 1) ? ratePerDay : rate; // Choose rate based on unit
-                        double total = tarif * qty;
-                        date_worked = rs2.getString("date_worked");
-                        languageInterpret = rs2.getString("language");
+                        int qty = (unitDay == 1) ? 1 : rs2.getInt("workedDayOrHours"); //2
+                        double tarif = (unitDay == 1) ? ratePerDay : rate; // Choose rate based on unit 3
+                        double total = tarif * qty; //4
+                        date_worked = rs2.getString("date_worked").substring(0,11); //5
+                        languageInterpret = rs2.getString("language"); //6
 
                         // Add row to table
-                        model.addRow(new Object[]{service, tarif, qty, total});
+                        model.addRow(new Object[]{service, tarif, qty, total, date_worked, languageInterpret});
                     }
 
                     // 🗨 If no matching billing data, notify user
