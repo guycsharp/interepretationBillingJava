@@ -20,9 +20,9 @@ public class InvoiceApp {
     private static final String myaddress = ConfigLoader.get("db.address");
     private static final int width = 900, height = 600;
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(InvoiceApp::createAndShowGUI);
-    }
+//    public static void main(String[] args) {
+//        SwingUtilities.invokeLater(InvoiceApp::createAndShowGUI);
+//    }
 
     private static void createAndShowGUI() {
         JFrame frame = new JFrame("Billing Software");

@@ -16,7 +16,11 @@ public class MainWindow {
             // ➕ Tab 2: Placeholder for future tools
             JPanel placeholderPanel = new JPanel();
             placeholderPanel.add(new JLabel("More tools coming soon..."));
-            tabbedPane.addTab("Other Tools", placeholderPanel);
+
+            tabbedPane.addTab("Clients", new ClientManagerPanel());
+            tabbedPane.addTab("Phones",  new PhoneManagerPanel());
+            tabbedPane.addTab("Bills",   new BillManagerPanel());
+
 
             frame.add(tabbedPane);
             frame.setVisible(true);
