@@ -173,7 +173,7 @@ public class PDFCreator {
             doc.add(vatNote);
 
             Paragraph placeDate = new Paragraph("Fait à Balma - " + (new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH)).format(billedOn));
-            placeDate.setAlignment(Element.ALIGN_CENTER);
+            placeDate.setAlignment(Element.ALIGN_LEFT);
             doc.add(placeDate);
 
             // STEP 10: Append a signature image at the bottom-left

@@ -31,4 +31,4 @@ bin/
 resources/config.properties
 resources/RojiSig.png
 build
-.gradle
+.gradle/
