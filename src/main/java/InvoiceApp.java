@@ -1,9 +1,16 @@
 // File: src/main/java/InvoiceApp.java
+// Ensure this class is in the default package (no "package" line), or adjust to match your project's package structure.
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.sql.Connection;
 import java.sql.SQLException;
+
+// Import DataLoader (assumed in default package) and InputPanel (in ui package)
+// Adjust these imports if your classes reside in different packages
+import ui.InputPanel;
+import mysqlConnection.MySQLConnector;
 
 /**
  * InvoiceApp is the main entry point of the billing application.
@@ -11,17 +18,12 @@ import java.sql.SQLException;
  * data loading to DataLoader and data entry to InputPanel.
  */
 public class InvoiceApp {
-    // These static fields are updated by DataLoader when fetching data
-    public static String clientAdd;
-    public static double bill_no;
-
-    // Database connector utility; adjust connection details there
     public static void main(String[] args) {
-        // Ensure UI updates run on the Event Dispatch Thread
         SwingUtilities.invokeLater(() -> {
             try {
-                // 1. Create and show the GUI, passing a live DB connection
+                // Establish a connection to the database
                 Connection conn = MySQLConnector.getConnection();
+                // Build and show the GUI
                 createAndShowGUI(conn);
             } catch (SQLException e) {
                 e.printStackTrace();
@@ -32,29 +34,20 @@ public class InvoiceApp {
         });
     }
 
-    /**
-     * Builds and displays the main window with two tabs:
-     *  - Billing: filter panel + results table
-     *  - Input Data: an InputPanel for inserting new rows
-     */
     private static void createAndShowGUI(Connection conn) {
-        // 1. Main window setup
+        // Main window
         JFrame frame = new JFrame("Billing Software");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setLayout(new BorderLayout(10, 10));
 
-        // 2. Filter panel (north of Billing tab)
+        // === 1. Filter panel (for billing tab) ===
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
-        JComboBox<String> companyComboBox = new JComboBox<>(
-                new String[]{"All", "Company A", "Company B"} // populate dynamically as needed
-        );
+        JComboBox<String> companyComboBox = new JComboBox<>(new String[]{"All", "Company A", "Company B"});
         JSpinner fromDateSpinner = new JSpinner(new SpinnerDateModel());
-        JSpinner toDateSpinner   = new JSpinner(new SpinnerDateModel());
+        JSpinner toDateSpinner = new JSpinner(new SpinnerDateModel());
         JCheckBox ignoreDateCheckbox = new JCheckBox("Ignore Date");
         JCheckBox ignorePaidCheckbox = new JCheckBox("Ignore Paid");
         JButton loadButton = new JButton("Load Data");
 
-        // Add filter controls to panel
         filterPanel.add(new JLabel("Company:"));
         filterPanel.add(companyComboBox);
         filterPanel.add(new JLabel("From:"));
@@ -65,29 +58,28 @@ public class InvoiceApp {
         filterPanel.add(ignorePaidCheckbox);
         filterPanel.add(loadButton);
 
-        // 3. Table for billing results
+        // === 2. Table model & table for billing results ===
         String[] columns = {"Service", "Rate", "Qty", "Total", "Date", "Language"};
         DefaultTableModel model = new DefaultTableModel(columns, 0);
         JTable table = new JTable(model);
 
-        // 4. Input panel for adding new entries
-        //    Defined in ui/InputPanel.java
-        JPanel inputDataPanel = new ui.InputPanel();
+        // === 3. Input data panel ===
+        JPanel inputDataPanel = new InputPanel();
 
-        // 5. Wire load button to DataLoader
-        loadButton.addActionListener(e ->
-                DataLoader.loadData(model,
-                        companyComboBox,
-                        fromDateSpinner,
-                        toDateSpinner,
-                        ignoreDateCheckbox,
-                        ignorePaidCheckbox)
-        );
+        // === 4. Load button action invokes DataLoader ===
+        loadButton.addActionListener(e -> DataLoader.loadData(
+                model,
+                companyComboBox,
+                fromDateSpinner,
+                toDateSpinner,
+                ignoreDateCheckbox,
+                ignorePaidCheckbox
+        ));
 
-        // 6. Tabbed pane containing Billing view and Input Data view
+        // === 5. Tabbed pane setup ===
         JTabbedPane tabs = new JTabbedPane();
 
-        // Billing tab content
+        // Billing tab layout
         JPanel billingPanel = new JPanel(new BorderLayout(10, 10));
         billingPanel.add(filterPanel, BorderLayout.NORTH);
         billingPanel.add(new JScrollPane(table), BorderLayout.CENTER);
@@ -96,10 +88,10 @@ public class InvoiceApp {
         // Input Data tab
         tabs.addTab("Input Data", inputDataPanel);
 
-        // 7. Final window setup
+        // === 6. Finalize frame ===
         frame.add(tabs, BorderLayout.CENTER);
-        frame.setSize(900, 600);              // Set an appropriate window size
-        frame.setLocationRelativeTo(null);    // Center on screen
-        frame.setVisible(true);               // Show the window
+        frame.setSize(900, 600);
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
     }
 }
