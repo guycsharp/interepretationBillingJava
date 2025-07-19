@@ -25,7 +25,7 @@ public class BillManagerPanel extends JPanel {
     private DefaultTableModel model;
 
     // Input fields for every column in the table
-    private JTextField serviceField,  workedField, cityField;  // unitDayField;
+    private JTextField serviceField, workedField, cityField;  // unitDayField;
     private JTextField languageField, billNoField, durationField;
 
     // Date/time pickers (spinners)
@@ -42,13 +42,12 @@ public class BillManagerPanel extends JPanel {
     // ───────────────────────────────────────────────────────────────
     // 🏗️ Constructor builds the form layout and sets behavior
     public BillManagerPanel() {
-        setLayout(new BorderLayout(5,5));  // give spacing between regions
-
+        setLayout(new BorderLayout(5, 5));  // give spacing between regions
 
 
         // ── Top section: table ──
         model = new DefaultTableModel(new String[]{
-                "ID", "Service", "UnitDay",  "City",
+                "ID", "Service", "UnitDay", "City",
                 "StartTime", "EndTime", "Duration", "DateWorked",
                 "Paid", "Lang", "BillNo", "ClientID"
         }, 0);
@@ -57,40 +56,51 @@ public class BillManagerPanel extends JPanel {
 
         // ── Center section: entry form ──
         JPanel form = new JPanel(new GridLayout(13, 2, 5, 5));  // 13 rows, 2 columns
-        serviceField  = new JTextField();
-        unitDayField  = new JCheckBox("Per Day"); //new JTextField();
+        serviceField = new JTextField();
+        unitDayField = new JCheckBox("Per Day"); //new JTextField();
 //        workedField   = new JTextField();
-        cityField     = new JTextField();
-        startTimeSpinner   = createSpinner("HH:mm:ss");
-        endTimeSpinner     = createSpinner("HH:mm:ss");
+        cityField = new JTextField();
+        startTimeSpinner = createSpinner("HH:mm:ss");
+        endTimeSpinner = createSpinner("HH:mm:ss");
         durationField = new JTextField();
-        dateWorkedSpinner  = createSpinner("yyyy-MM-dd");
-        paidCheck     = new JCheckBox("Paid");
+        dateWorkedSpinner = createSpinner("yyyy-MM-dd");
+        paidCheck = new JCheckBox("Paid");
         languageField = new JTextField();
-        billNoField   = new JTextField();
-        clientCombo   = new JComboBox<>();
+        billNoField = new JTextField();
+        clientCombo = new JComboBox<>();
 
         // Add all form rows
-        form.add(new JLabel("Service:"));         form.add(serviceField);
-        form.add(new JLabel("UnitDay (0/1):"));   form.add(unitDayField);
+        form.add(new JLabel("Service:"));
+        form.add(serviceField);
+        form.add(new JLabel("UnitDay (0/1):"));
+        form.add(unitDayField);
 //        form.add(new JLabel("Worked Hours/Days:")); form.add(workedField);
-        form.add(new JLabel("City Serviced:"));   form.add(cityField);
-        form.add(new JLabel("Start Time:"));      form.add(startTimeSpinner);
-        form.add(new JLabel("End Time:"));        form.add(endTimeSpinner);
-        form.add(new JLabel("Duration (min):"));  form.add(durationField);
-        form.add(new JLabel("Date Worked:"));     form.add(dateWorkedSpinner);
-        form.add(new JLabel("Paid:"));            form.add(paidCheck);
-        form.add(new JLabel("Language:"));        form.add(languageField);
-        form.add(new JLabel("Bill No:"));         form.add(billNoField);
-        form.add(new JLabel("Client:"));          form.add(clientCombo);
+        form.add(new JLabel("City Serviced:"));
+        form.add(cityField);
+        form.add(new JLabel("Start Time:"));
+        form.add(startTimeSpinner);
+        form.add(new JLabel("End Time:"));
+        form.add(endTimeSpinner);
+        form.add(new JLabel("Duration (min):"));
+        form.add(durationField);
+        form.add(new JLabel("Date Worked:"));
+        form.add(dateWorkedSpinner);
+        form.add(new JLabel("Paid:"));
+        form.add(paidCheck);
+        form.add(new JLabel("Language:"));
+        form.add(languageField);
+        form.add(new JLabel("Bill No:"));
+        form.add(billNoField);
+        form.add(new JLabel("Client:"));
+        form.add(clientCombo);
 
         add(form, BorderLayout.CENTER); // Add form to bottom
 
         // ── Top section: action buttons ──
         JPanel topBar = new JPanel();
-        addBtn     = new JButton("Add");
-        updateBtn  = new JButton("Update");
-        deleteBtn  = new JButton("Delete");
+        addBtn = new JButton("Add");
+        updateBtn = new JButton("Update");
+        deleteBtn = new JButton("Delete");
         refreshBtn = new JButton("Refresh");
 
         topBar.add(addBtn);
@@ -101,13 +111,15 @@ public class BillManagerPanel extends JPanel {
 
         // ── Wire up button behavior ──
         refreshBtn.addActionListener(e -> loadAll());
-        addBtn    .addActionListener(e -> insertBill());
-        updateBtn .addActionListener(e -> updateBill());
-        deleteBtn .addActionListener(e -> deleteBill());
+        addBtn.addActionListener(e -> insertBill());
+        updateBtn.addActionListener(e -> updateBill());
+        deleteBtn.addActionListener(e -> deleteBill());
 
         // Table selection: when user clicks a row, fill form
         table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
-            public void valueChanged(ListSelectionEvent e) { fillForm(); }
+            public void valueChanged(ListSelectionEvent e) {
+                fillForm();
+            }
         });
 
         // Initial data load
@@ -135,11 +147,13 @@ public class BillManagerPanel extends JPanel {
         try (Connection c = MySQLConnector.getConnection();
              Statement st = c.createStatement();
              ResultSet rs = st.executeQuery(sql)) {
-            while(rs.next()) {
+            while (rs.next()) {
                 clientIds.add(rs.getInt(1));           // store client ID
                 clientCombo.addItem(rs.getString(2));  // display name
             }
-        } catch (SQLException ex){ ex.printStackTrace(); }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
     }
 
     // Refreshes the table from the database
@@ -150,7 +164,7 @@ public class BillManagerPanel extends JPanel {
         try (Connection c = MySQLConnector.getConnection();
              Statement st = c.createStatement();
              ResultSet rs = st.executeQuery(sql)) {
-            while(rs.next()) {
+            while (rs.next()) {
                 model.addRow(new Object[]{
                         rs.getInt(1),         // ID
                         rs.getString(2),      // Service
@@ -167,7 +181,9 @@ public class BillManagerPanel extends JPanel {
                         rs.getInt(13)         // Client ID
                 });
             }
-        } catch (SQLException ex){ ex.printStackTrace(); }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
     }
 
     // ➕ Inserts a new record into the bill_main table
@@ -184,20 +200,29 @@ public class BillManagerPanel extends JPanel {
             ps.setInt(2, unitDayField.isSelected() ? 1 : 0);
             ps.setString(3, cityField.getText().trim());
 
-            ps.setTimestamp(4, new Timestamp(
+            Timestamp startTime, endTime;
+            startTime = new Timestamp(
                     CombineDateTime.mergeDateAndTime(
                             (Date) dateWorkedSpinner.getValue(),
                             (Date) startTimeSpinner.getValue()
-                    ).getTime()
-            ));
-            ps.setTimestamp(5, new Timestamp(
+                    ).getTime());
+            endTime = new Timestamp(
                     CombineDateTime.mergeDateAndTime(
                             (Date) dateWorkedSpinner.getValue(),
                             (Date) endTimeSpinner.getValue()
-                    ).getTime()
-            ));
+                    ).getTime());
+            ps.setTimestamp(4, startTime);
+            ps.setTimestamp(5, endTime);
 
-            ps.setDouble(6, Double.parseDouble(durationField.getText().trim()));
+            double dur = 0;
+            String durTxt = durationField.getText().trim();
+            if ((null == durTxt || durTxt.isEmpty())) {
+                dur = CombineDateTime.calcDuration(startTime, endTime);
+            } else {
+                dur = Double.parseDouble(durTxt);
+            }
+
+            ps.setDouble(6, dur);
             ps.setDate(7, new java.sql.Date(
                     ((Date) dateWorkedSpinner.getValue()).getTime()
             ));
@@ -343,8 +368,8 @@ public class BillManagerPanel extends JPanel {
         // 🕒 Time/date fields need special care because they must be java.util.Date
         // Otherwise JSpinner throws an IllegalArgumentException
         Object startObj = model.getValueAt(row, 4); // startTime
-        Object endObj   = model.getValueAt(row, 5); // endTime
-        Object dateObj  = model.getValueAt(row, 7); // date_worked
+        Object endObj = model.getValueAt(row, 5); // endTime
+        Object dateObj = model.getValueAt(row, 7); // date_worked
 
         // Start time: convert Timestamp to Date
         if (startObj instanceof Timestamp) {

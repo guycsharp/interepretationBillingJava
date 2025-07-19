@@ -33,4 +33,17 @@ public class CombineDateTime {
         return calDate.getTime();
 
     }
+
+    /**
+     * Calculates the difference between two Date objects in minutes.
+     *
+     * @param startDate the start timestamp
+     * @param endDate   the end timestamp
+     * @return elapsed time in minutes (fractional)
+     */
+    public static double calcDuration(Date startDate, Date endDate) {
+        long diffMillis = endDate.getTime() - startDate.getTime();
+        return diffMillis / (1000.0 * 60.0);
+    }
+
 }
