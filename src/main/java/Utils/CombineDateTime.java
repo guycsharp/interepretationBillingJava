@@ -1,7 +1,10 @@
 package Utils;
 
+import java.time.LocalDate;
+import java.time.format.TextStyle;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Locale;
 
 public class CombineDateTime {
     /**
@@ -46,4 +49,8 @@ public class CombineDateTime {
         return diffMillis / (1000.0 * 60);
     }
 
+    public static String getDayOfWeek(java.sql.Date sqldate){
+        LocalDate localDate = sqldate.toLocalDate();
+        return localDate.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
+    }
 }

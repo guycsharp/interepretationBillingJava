@@ -190,9 +190,9 @@ public class BillManagerPanel extends JPanel {
     private void insertBill() {
         String sql = "INSERT INTO bill_main " +
                 "(service_rendered, UnitDay, CityServiced, " +
-                " startTime, endTime, duration_in_minutes, date_worked, " +
-                " paid, language, bill_no, client_id, insert_date) " +
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
+                " startTime, endTime, duration_in_minutes, date_worked," +
+                " paid, language, bill_no, client_id, insert_date, dayOfTheWeek) " +
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
         try (Connection c = MySQLConnector.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
 
@@ -222,16 +222,18 @@ public class BillManagerPanel extends JPanel {
                 dur = Double.parseDouble(durTxt);
             }
 
-            ps.setDouble(6, dur);
-            ps.setDate(7, new java.sql.Date(
+            java.sql.Date sqldate = new java.sql.Date(
                     ((Date) dateWorkedSpinner.getValue()).getTime()
-            ));
+            );
+            ps.setDouble(6, dur);
+            ps.setDate(7, sqldate);
             ps.setInt(8, paidCheck.isSelected() ? 1 : 0);
             ps.setString(9, languageField.getText().trim());
             ps.setBigDecimal(10, new java.math.BigDecimal(billNoField.getText().trim()));
             ps.setInt(11, clientIds.get(clientCombo.getSelectedIndex()));
             // Param 12: current timestamp
             ps.setTimestamp(12, new java.sql.Timestamp(System.currentTimeMillis()));
+            ps.setString(13, CombineDateTime.getDayOfWeek(sqldate));
 
             ps.executeUpdate();
             refreshTable();

@@ -5,21 +5,23 @@ CREATE TABLE `bill_main` (
   `idbill_main` int NOT NULL AUTO_INCREMENT,
   `service_rendered` varchar(45) DEFAULT NULL,
   `UnitDay` tinyint DEFAULT '0',
-   `startTime` datetime DEFAULT NULL,
-    `endTime` datetime DEFAULT NULL,
+  `startTime` datetime DEFAULT NULL,
+  `endTime` datetime DEFAULT NULL,
   `duration_in_minutes` double DEFAULT '0',
   `language` varchar(45) DEFAULT NULL,
-    `date_worked` date DEFAULT NULL,
+  `date_worked` date DEFAULT NULL,
   `client_id` int DEFAULT NULL,
   `paid` tinyint DEFAULT NULL,
   `bill_no` decimal(10,0) DEFAULT NULL,
   `billed_date` date DEFAULT NULL,
-   `CityServiced` varchar(45) DEFAULT NULL,
-    `insert_date` datetime DEFAULT NULL,
-    `updated_date` datetime DEFAULT NULL,
+  `CityServiced` varchar(45) DEFAULT NULL,
+  `insert_date` datetime DEFAULT NULL,
+  `updated_date` datetime DEFAULT NULL,
+  `dayOfTheWeek` varchar(15) DEFAULT NULL,
   PRIMARY KEY (`idbill_main`),
   UNIQUE KEY `idbill_main_UNIQUE` (`idbill_main`)
-) ENGINE=InnoDB AUTO_INCREMENT=45 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=52 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 
 
 CREATE TABLE `client_main` (
@@ -61,8 +63,9 @@ CREATE TABLE `rate_main` (
   `rate_per_hour` double DEFAULT NULL,
   `rate_per_day` double DEFAULT NULL,
   `offset` int DEFAULT NULL,
-  `weekend` tinyint DEFAULT NULL,
-    `insert_date` datetime DEFAULT NULL,
-    `update_date` datetime DEFAULT NULL,
+  `weekend` varchar(45) DEFAULT NULL,
+  `insert_date` datetime DEFAULT NULL,
+  `update_date` datetime DEFAULT NULL,
   PRIMARY KEY (`client_id`,`language`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
