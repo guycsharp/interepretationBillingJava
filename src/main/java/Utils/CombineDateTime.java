@@ -26,8 +26,8 @@ public class CombineDateTime {
 // Apply time to date
         calDate.set(Calendar.HOUR_OF_DAY, calTime.get(Calendar.HOUR_OF_DAY));
         calDate.set(Calendar.MINUTE,      calTime.get(Calendar.MINUTE));
-        calDate.set(Calendar.SECOND,      calTime.get(Calendar.SECOND));
-        calDate.set(Calendar.MILLISECOND, calTime.get(Calendar.MILLISECOND));
+        calDate.set(Calendar.SECOND,      0);
+        calDate.set(Calendar.MILLISECOND, 0);
 
 // ✅ Combined datetime
         return calDate.getTime();
@@ -43,7 +43,7 @@ public class CombineDateTime {
      */
     public static double calcDuration(Date startDate, Date endDate) {
         long diffMillis = endDate.getTime() - startDate.getTime();
-        return diffMillis / (1000.0 * 60.0);
+        return diffMillis / (1000.0 * 60);
     }
 
 }

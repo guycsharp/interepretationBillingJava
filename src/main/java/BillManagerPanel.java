@@ -60,8 +60,8 @@ public class BillManagerPanel extends JPanel {
         unitDayField = new JCheckBox("Per Day"); //new JTextField();
 //        workedField   = new JTextField();
         cityField = new JTextField();
-        startTimeSpinner = createSpinner("HH:mm:ss");
-        endTimeSpinner = createSpinner("HH:mm:ss");
+        startTimeSpinner = createSpinner("HH:mm");
+        endTimeSpinner = createSpinner("HH:mm");
         durationField = new JTextField();
         dateWorkedSpinner = createSpinner("yyyy-MM-dd");
         paidCheck = new JCheckBox("Paid");
