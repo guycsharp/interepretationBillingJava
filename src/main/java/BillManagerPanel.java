@@ -42,29 +42,18 @@ public class BillManagerPanel extends JPanel {
     public BillManagerPanel() {
         setLayout(new BorderLayout(5,5));  // give spacing between regions
 
-        // ── Top section: action buttons ──
-        JPanel topBar = new JPanel();
-        addBtn     = new JButton("Add");
-        updateBtn  = new JButton("Update");
-        deleteBtn  = new JButton("Delete");
-        refreshBtn = new JButton("Refresh");
 
-        topBar.add(addBtn);
-        topBar.add(updateBtn);
-        topBar.add(deleteBtn);
-        topBar.add(refreshBtn);
-        add(topBar, BorderLayout.NORTH);
 
-        // ── Center section: table ──
+        // ── Top section: table ──
         model = new DefaultTableModel(new String[]{
                 "ID", "Service", "UnitDay", "Worked", "City",
                 "StartTime", "EndTime", "Duration", "DateWorked",
                 "Paid", "Lang", "BillNo", "ClientID"
         }, 0);
         table = new JTable(model);
-        add(new JScrollPane(table), BorderLayout.CENTER);
+        add(new JScrollPane(table), BorderLayout.NORTH);
 
-        // ── Bottom section: entry form ──
+        // ── Center section: entry form ──
         JPanel form = new JPanel(new GridLayout(13, 2, 5, 5));  // 13 rows, 2 columns
         serviceField  = new JTextField();
         unitDayField  = new JTextField();
@@ -93,7 +82,20 @@ public class BillManagerPanel extends JPanel {
         form.add(new JLabel("Bill No:"));         form.add(billNoField);
         form.add(new JLabel("Client:"));          form.add(clientCombo);
 
-        add(form, BorderLayout.SOUTH); // Add form to bottom
+        add(form, BorderLayout.CENTER); // Add form to bottom
+
+        // ── Top section: action buttons ──
+        JPanel topBar = new JPanel();
+        addBtn     = new JButton("Add");
+        updateBtn  = new JButton("Update");
+        deleteBtn  = new JButton("Delete");
+        refreshBtn = new JButton("Refresh");
+
+        topBar.add(addBtn);
+        topBar.add(updateBtn);
+        topBar.add(deleteBtn);
+        topBar.add(refreshBtn);
+        add(topBar, BorderLayout.SOUTH);
 
         // ── Wire up button behavior ──
         refreshBtn.addActionListener(e -> loadAll());
