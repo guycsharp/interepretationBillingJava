@@ -173,82 +173,134 @@ public class BillManagerPanel extends JPanel {
     // ➕ Inserts a new record into the bill_main table
     private void insertBill() {
         String sql = "INSERT INTO bill_main " +
-                "(service_rendered, UnitDay,  CityServiced, " +
-                "startTime, endTime, duration_in_minutes, date_worked, paid, language, bill_no, client_id, insert_date) " +
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,NOW())";
+                "(service_rendered, UnitDay, CityServiced, " +
+                " startTime, endTime, duration_in_minutes, date_worked, " +
+                " paid, language, bill_no, client_id, insert_date) " +
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
         try (Connection c = MySQLConnector.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
 
             ps.setString(1, serviceField.getText().trim());
             ps.setInt(2, unitDayField.isSelected() ? 1 : 0);
-//            ps.setInt(2, Integer.parseInt(unitDayField.getText().trim()));
-//            ps.setDouble(3, Double.parseDouble(workedField.getText().trim()));
             ps.setString(3, cityField.getText().trim());
-            ps.setTimestamp(4,
-                    new Timestamp(
-                            CombineDateTime.mergeDateAndTime(
-                                    (Date) dateWorkedSpinner.getValue(),
-                                    (Date) startTimeSpinner.getValue()
-                            ).getTime()
-                    )
-            );
-            ps.setTimestamp(5,
-                    new Timestamp(
-                            CombineDateTime.mergeDateAndTime(
-                                    (Date) dateWorkedSpinner.getValue(),
-                                    (Date) endTimeSpinner.getValue()
-                            ).getTime()
-                    )
-            );
-//            ps.setTimestamp(5, new Timestamp(((Date) endTimeSpinner.getValue()).getTime()));
+
+            ps.setTimestamp(4, new Timestamp(
+                    CombineDateTime.mergeDateAndTime(
+                            (Date) dateWorkedSpinner.getValue(),
+                            (Date) startTimeSpinner.getValue()
+                    ).getTime()
+            ));
+            ps.setTimestamp(5, new Timestamp(
+                    CombineDateTime.mergeDateAndTime(
+                            (Date) dateWorkedSpinner.getValue(),
+                            (Date) endTimeSpinner.getValue()
+                    ).getTime()
+            ));
+
             ps.setDouble(6, Double.parseDouble(durationField.getText().trim()));
-            ps.setTimestamp(7, new Timestamp(((Date) dateWorkedSpinner.getValue()).getTime()));
+            ps.setDate(7, new java.sql.Date(
+                    ((Date) dateWorkedSpinner.getValue()).getTime()
+            ));
             ps.setInt(8, paidCheck.isSelected() ? 1 : 0);
             ps.setString(9, languageField.getText().trim());
             ps.setBigDecimal(10, new java.math.BigDecimal(billNoField.getText().trim()));
             ps.setInt(11, clientIds.get(clientCombo.getSelectedIndex()));
+            // Param 12: current timestamp
+            ps.setTimestamp(12, new java.sql.Timestamp(System.currentTimeMillis()));
 
-            ps.executeUpdate();  // 🚀 Insert into database
-            refreshTable();      // 🔄 Reload table
+            ps.executeUpdate();
+            refreshTable();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Insert failed: " + ex.getMessage());
         }
     }
 
+
     // ✏️ Updates the selected record in bill_main
+    // ✏️ This method updates the selected bill entry in the database
     private void updateBill() {
+        // Step 1: Get the selected row from the table
         int row = table.getSelectedRow();
-        if (row < 0) return; // No row selected
 
-        int id = (int) model.getValueAt(row, 0); // ID of selected row
+        // Step 2: If no row is selected, just return (nothing to update)
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "Please select a record to update.");
+            return;
+        }
 
-        String sql = "UPDATE bill_main SET service_rendered=?, UnitDay=?, workedDayOrHours=?, " +
-                "CityServiced=?, startTime=?, endTime=?, duration_in_minutes=?, date_worked=?, " +
-                "paid=?, language=?, bill_no=?, client_id=?, updated_date=NOW() WHERE idbill_main=?";
+        // Step 3: Extract the ID of the selected row — this is our target for the WHERE clause
+        int id = (int) model.getValueAt(row, 0); // ID is in column 0 of the table
+
+        // Step 4: Write the SQL update query
+        // Note: It must exactly match the real table columns — no missing or extra columns!
+        String sql = "UPDATE bill_main SET " +
+                "service_rendered=?, UnitDay=?, CityServiced=?, " +
+                "startTime=?, endTime=?, duration_in_minutes=?, date_worked=?, " +
+                "paid=?, language=?, bill_no=?, client_id=?, updated_date=NOW() " +
+                "WHERE idbill_main=?";
+
+        // Step 5: Use JDBC to send the data to MySQL
         try (Connection c = MySQLConnector.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
 
-            ps.setString(1, serviceField.getText().trim());
-            ps.setInt(2, unitDayField.isSelected() ? 1 : 0);
-//            ps.setInt(2, Integer.parseInt(unitDayField.getText().trim()));
-//            ps.setDouble(3, Double.parseDouble(workedField.getText().trim()));
-            ps.setString(3, cityField.getText().trim());
-            ps.setTimestamp(4, new Timestamp(((Date) startTimeSpinner.getValue()).getTime()));
-            ps.setTimestamp(5, new Timestamp(((Date) endTimeSpinner.getValue()).getTime()));
-            ps.setDouble(6, Double.parseDouble(durationField.getText().trim()));
-            ps.setTimestamp(7, new Timestamp(((Date) dateWorkedSpinner.getValue()).getTime()));
-            ps.setInt(8, paidCheck.isSelected() ? 1 : 0);
-            ps.setString(9, languageField.getText().trim());
-            ps.setBigDecimal(10, new java.math.BigDecimal(billNoField.getText().trim()));
-            ps.setInt(11, clientIds.get(clientCombo.getSelectedIndex()));
-            ps.setInt(12, id); // Target ID for update
+            // Step 6: Fill in each ? in the SQL query with values from the form
+            ps.setString(1, serviceField.getText().trim());  // service_rendered
+            ps.setInt(2, unitDayField.isSelected() ? 1 : 0); // UnitDay (checkbox, 1 for true, 0 for false)
+            ps.setString(3, cityField.getText().trim());     // CityServiced
 
-            ps.executeUpdate();  // ✔ Update record
-            refreshTable();      // 🔄 Refresh table view
+            // Combine date and time using your custom utility method
+            // This merges the selected date with the time from the spinner
+            ps.setTimestamp(4, new Timestamp(
+                    CombineDateTime.mergeDateAndTime(
+                            (Date) dateWorkedSpinner.getValue(),    // date part
+                            (Date) startTimeSpinner.getValue()      // time part
+                    ).getTime()
+            ));
+            ps.setTimestamp(5, new Timestamp(
+                    CombineDateTime.mergeDateAndTime(
+                            (Date) dateWorkedSpinner.getValue(),    // date part
+                            (Date) endTimeSpinner.getValue()        // time part
+                    ).getTime()
+            ));
+
+            // Duration in minutes — parsed from the text field
+            ps.setDouble(6, Double.parseDouble(durationField.getText().trim()));
+
+            // Date only — stored separately in the database
+            ps.setTimestamp(7, new Timestamp(
+                    ((Date) dateWorkedSpinner.getValue()).getTime()
+            ));
+
+            // Paid status (checkbox)
+            ps.setInt(8, paidCheck.isSelected() ? 1 : 0);
+
+            // Language field
+            ps.setString(9, languageField.getText().trim());
+
+            // Bill number (BigDecimal is used for precise numbers)
+            ps.setBigDecimal(10, new java.math.BigDecimal(billNoField.getText().trim()));
+
+            // Get selected client ID from the combo box
+            ps.setInt(11, clientIds.get(clientCombo.getSelectedIndex()));
+
+            // Set the WHERE clause target ID — very important!
+            ps.setInt(12, id);
+
+            // Step 7: Execute the update
+            ps.executeUpdate();
+
+            // Step 8: Refresh the table to show the new data
+            refreshTable();
+
+            // Optional: Show a confirmation
+            JOptionPane.showMessageDialog(this, "Record updated successfully!");
+
         } catch (Exception ex) {
+            // If anything goes wrong, show the error to the user
             JOptionPane.showMessageDialog(this, "Update failed: " + ex.getMessage());
         }
     }
+
 
     // ❌ Deletes the selected record from bill_main
     private void deleteBill() {
@@ -268,24 +320,71 @@ public class BillManagerPanel extends JPanel {
     }
 
     // 🪄 When a row is selected, prefill the form with its data
+    // 🪄 This method fills the input form with data from the selected table row
     private void fillForm() {
+        // Step 1: Get the selected row index
         int row = table.getSelectedRow();
+
+        // Step 2: If no row is selected, we do nothing
         if (row < 0) return;
 
-        serviceField      .setText(model.getValueAt(row, 1).toString());
-        unitDayField      .setSelected("1".equals(model.getValueAt(row, 2).toString()));
-//        workedField       .setText(model.getValueAt(row, 3).toString());
-        cityField         .setText(model.getValueAt(row, 3).toString());
-        startTimeSpinner  .setValue(model.getValueAt(row, 4));
-        endTimeSpinner    .setValue(model.getValueAt(row, 5));
-        durationField     .setText(model.getValueAt(row, 6).toString());
-        dateWorkedSpinner .setValue(model.getValueAt(row, 7));
-        paidCheck         .setSelected("true".equals(model.getValueAt(row, 8).toString()));
-        languageField     .setText(model.getValueAt(row, 9).toString());
-        billNoField       .setText(model.getValueAt(row, 10).toString());
+        // Step 3: Fill each input field with the corresponding column from the table model
 
-        // 🧠 Reverse lookup: match clientId to combo index
-        int clientId = (int) model.getValueAt(row, 11);
-        clientCombo.setSelectedIndex(clientIds.indexOf(clientId));
+        // Service name (String)
+        serviceField.setText(model.getValueAt(row, 1).toString());
+
+        // UnitDay checkbox (0 or 1 in table)
+        unitDayField.setSelected((int) model.getValueAt(row, 2) == 1);
+
+        // City serviced (String)
+        cityField.setText(model.getValueAt(row, 3).toString());
+
+        // ─────────────────────────────────────────────────────────────
+        // 🕒 Time/date fields need special care because they must be java.util.Date
+        // Otherwise JSpinner throws an IllegalArgumentException
+        Object startObj = model.getValueAt(row, 4); // startTime
+        Object endObj   = model.getValueAt(row, 5); // endTime
+        Object dateObj  = model.getValueAt(row, 7); // date_worked
+
+        // Start time: convert Timestamp to Date
+        if (startObj instanceof Timestamp) {
+            startTimeSpinner.setValue(new Date(((Timestamp) startObj).getTime()));
+        } else if (startObj instanceof Date) {
+            startTimeSpinner.setValue(startObj);
+        }
+
+        // End time: same
+        if (endObj instanceof Timestamp) {
+            endTimeSpinner.setValue(new Date(((Timestamp) endObj).getTime()));
+        } else if (endObj instanceof Date) {
+            endTimeSpinner.setValue(endObj);
+        }
+
+        // Date worked: same logic
+        if (dateObj instanceof Timestamp) {
+            dateWorkedSpinner.setValue(new Date(((Timestamp) dateObj).getTime()));
+        } else if (dateObj instanceof Date) {
+            dateWorkedSpinner.setValue(dateObj);
+        }
+
+        // Duration (minutes), shown as text
+        durationField.setText(model.getValueAt(row, 6).toString());
+
+        // Paid checkbox (true or false as String or Boolean)
+        paidCheck.setSelected(Boolean.parseBoolean(model.getValueAt(row, 8).toString()));
+
+        // Language (String)
+        languageField.setText(model.getValueAt(row, 9).toString());
+
+        // Bill number (BigDecimal → shown as string)
+        billNoField.setText(model.getValueAt(row, 10).toString());
+
+        // Client: match the ID from the table back to the combo box selection
+        int clientId = (int) model.getValueAt(row, 11);  // client_id column
+        int index = clientIds.indexOf(clientId);         // find matching index in list
+        if (index >= 0) {
+            clientCombo.setSelectedIndex(index);
+        }
     }
+
 }
