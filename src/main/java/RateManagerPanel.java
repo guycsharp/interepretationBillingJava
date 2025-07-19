@@ -15,7 +15,7 @@ public class RateManagerPanel extends JPanel {
     private JComboBox<String> clientCombo;
     private List<Integer> clientIds = new ArrayList<>();
 
-    private JTextField languageField;
+    private JComboBox<String> languageField;
     private JTextField rateHourField;
     private JTextField rateDayField;
     private JTextField offsetByField;
@@ -39,7 +39,7 @@ public class RateManagerPanel extends JPanel {
         // ── Form ──
         JPanel form = new JPanel(new GridLayout(7,2,5,5));
         clientCombo    = new JComboBox<>();
-        languageField  = new JTextField();
+        languageField  = new JComboBox<>();
         rateHourField  = new JTextField();
         rateDayField   = new JTextField();
         offsetByField  = new JTextField();
@@ -81,6 +81,7 @@ public class RateManagerPanel extends JPanel {
 
     private void loadAll() {
         loadClients();
+        loadLanguages();
         refreshTable();
     }
 
@@ -94,6 +95,22 @@ public class RateManagerPanel extends JPanel {
             while (rs.next()) {
                 clientIds.add(rs.getInt(1));
                 clientCombo.addItem(rs.getString(2));
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    private void loadLanguages() {
+        languageField.removeAllItems();
+        String sql = "SELECT " +
+                "    lang " +
+                "FROM language_main";
+        try (Connection c = MySQLConnector.getConnection();
+             Statement st = c.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+            while (rs.next()) {
+                languageField.addItem(rs.getString(1));
             }
         } catch (SQLException ex) {
             ex.printStackTrace();
@@ -138,7 +155,7 @@ public class RateManagerPanel extends JPanel {
              PreparedStatement ps = c.prepareStatement(sql)) {
 
             ps.setInt(   1, clientIds.get(clientCombo.getSelectedIndex()));
-            ps.setString(2, languageField.getText().trim());
+            ps.setString(2, languageField.getItemAt(languageField.getSelectedIndex()));
             ps.setDouble(3, Double.parseDouble(rateHourField .getText().trim()));
             ps.setDouble(4, Double.parseDouble(rateDayField  .getText().trim()));
             ps.setInt(   5, Integer.parseInt(offsetByField  .getText().trim()));
@@ -204,7 +221,7 @@ public class RateManagerPanel extends JPanel {
 
         int clientId = (int) model.getValueAt(row, 0);
         clientCombo.setSelectedIndex(clientIds.indexOf(clientId));
-        languageField .setText(model.getValueAt(row, 2).toString());
+        languageField.setSelectedItem(model.getValueAt(row, 2).toString());
         rateHourField .setText(model.getValueAt(row, 3).toString());
         rateDayField  .setText(model.getValueAt(row, 4).toString());
         offsetByField .setText(model.getValueAt(row, 5).toString());
