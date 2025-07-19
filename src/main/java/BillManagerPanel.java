@@ -25,14 +25,14 @@ public class BillManagerPanel extends JPanel {
     private DefaultTableModel model;
 
     // Input fields for every column in the table
-    private JTextField serviceField, unitDayField, workedField, cityField;
+    private JTextField serviceField,  workedField, cityField;  // unitDayField;
     private JTextField languageField, billNoField, durationField;
 
     // Date/time pickers (spinners)
     private JSpinner startTimeSpinner, endTimeSpinner, dateWorkedSpinner;
 
     // Checkbox for 'paid' status and dropdown for clients
-    private JCheckBox paidCheck;
+    private JCheckBox paidCheck, unitDayField;
     private JComboBox<String> clientCombo;
     private List<Integer> clientIds = new ArrayList<>(); // holds client IDs that match names
 
@@ -58,7 +58,7 @@ public class BillManagerPanel extends JPanel {
         // ── Center section: entry form ──
         JPanel form = new JPanel(new GridLayout(13, 2, 5, 5));  // 13 rows, 2 columns
         serviceField  = new JTextField();
-        unitDayField  = new JTextField();
+        unitDayField  = new JCheckBox("Per Day"); //new JTextField();
 //        workedField   = new JTextField();
         cityField     = new JTextField();
         startTimeSpinner   = createSpinner("HH:mm:ss");
@@ -180,7 +180,8 @@ public class BillManagerPanel extends JPanel {
              PreparedStatement ps = c.prepareStatement(sql)) {
 
             ps.setString(1, serviceField.getText().trim());
-            ps.setInt(2, Integer.parseInt(unitDayField.getText().trim()));
+            ps.setInt(2, unitDayField.isSelected() ? 1 : 0);
+//            ps.setInt(2, Integer.parseInt(unitDayField.getText().trim()));
 //            ps.setDouble(3, Double.parseDouble(workedField.getText().trim()));
             ps.setString(3, cityField.getText().trim());
             ps.setTimestamp(4,
@@ -228,7 +229,8 @@ public class BillManagerPanel extends JPanel {
              PreparedStatement ps = c.prepareStatement(sql)) {
 
             ps.setString(1, serviceField.getText().trim());
-            ps.setInt(2, Integer.parseInt(unitDayField.getText().trim()));
+            ps.setInt(2, unitDayField.isSelected() ? 1 : 0);
+//            ps.setInt(2, Integer.parseInt(unitDayField.getText().trim()));
 //            ps.setDouble(3, Double.parseDouble(workedField.getText().trim()));
             ps.setString(3, cityField.getText().trim());
             ps.setTimestamp(4, new Timestamp(((Date) startTimeSpinner.getValue()).getTime()));
@@ -271,14 +273,14 @@ public class BillManagerPanel extends JPanel {
         if (row < 0) return;
 
         serviceField      .setText(model.getValueAt(row, 1).toString());
-        unitDayField      .setText(model.getValueAt(row, 2).toString());
+        unitDayField      .setSelected("1".equals(model.getValueAt(row, 2).toString()));
 //        workedField       .setText(model.getValueAt(row, 3).toString());
         cityField         .setText(model.getValueAt(row, 3).toString());
         startTimeSpinner  .setValue(model.getValueAt(row, 4));
         endTimeSpinner    .setValue(model.getValueAt(row, 5));
         durationField     .setText(model.getValueAt(row, 6).toString());
         dateWorkedSpinner .setValue(model.getValueAt(row, 7));
-        paidCheck         .setSelected((boolean) model.getValueAt(row, 8));
+        paidCheck         .setSelected("true".equals(model.getValueAt(row, 8).toString()));
         languageField     .setText(model.getValueAt(row, 9).toString());
         billNoField       .setText(model.getValueAt(row, 10).toString());
 
