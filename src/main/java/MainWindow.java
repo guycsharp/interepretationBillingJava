@@ -20,8 +20,8 @@ public class MainWindow {
             tabbedPane.addTab("Clients", new ClientManagerPanel());
             tabbedPane.addTab("Phones",  new PhoneManagerPanel());
             tabbedPane.addTab("Bills",   new BillManagerPanel());
-
-
+            tabbedPane.addTab("Rates",   new RateManagerPanel());
+            tabbedPane.addTab("Languages",   new LanguageManagerPanel());
             frame.add(tabbedPane);
             frame.setVisible(true);
         });

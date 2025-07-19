@@ -13,7 +13,7 @@ public class InvoiceDataLoader {
         String rateSql = "SELECT client_rate, client_rate_per_day, idclient_main, client_address FROM client_main WHERE client_name = ?";
         String maxBillSql = "SELECT MAX(bill_no) as max_bill FROM bill_main";
         StringBuilder billSqlBuilder = new StringBuilder(
-                "SELECT service_rendered, UnitDay, workedDayOrHours, date_worked, language FROM bill_main WHERE 1=1"
+                "SELECT service_rendered, UnitDay, duration_in_minutes, date_worked, language FROM bill_main WHERE 1=1"
         );
 
         if (!"All".equals(company)) {
@@ -70,10 +70,10 @@ public class InvoiceDataLoader {
                         anyRows = true;
                         String service = rs2.getString("service_rendered");
                         int unitDay = rs2.getInt("UnitDay");
-                        int qty = (unitDay == 1) ? 1 : rs2.getInt("workedDayOrHours");
+                        double qty = (unitDay == 1) ? 1 : rs2.getDouble("duration_in_minutes");
                         double tarif = (unitDay == 1) ? ratePerDay : rate;
                         double total = tarif * qty;
-                        InvoiceApp.date_worked = rs2.getString("date_worked").substring(0, 11);
+                        InvoiceApp.date_worked = rs2.getString("date_worked");
                         InvoiceApp.languageInterpret = rs2.getString("language");
 
                         model.addRow(new Object[]{service, tarif, qty, total, InvoiceApp.date_worked, InvoiceApp.languageInterpret});
