@@ -141,6 +141,26 @@ public class InvoiceDataLoader {
                 InvoiceApp.clientAdd = rs.getString("client_address");
             }
 
+            StringBuilder lessThan30 = new StringBuilder(
+                    "SELECT " +
+
+                            "  rate_per_hour " +
+                            " FROM rate_main  " +
+                            " WHERE    language = 'LessThan30' " +
+                            " AND client_id = ?"
+            );
+            double lessThan30Rate = 0;
+            try (PreparedStatement psBill = conn.prepareStatement(lessThan30.toString())) {
+                int idx = 1;
+                psBill.setInt(idx++, clientId);
+
+
+                try (ResultSet rs2 = psBill.executeQuery()) {
+                    while (rs2.next()) {
+                        lessThan30Rate = rs2.getDouble("rate_per_hour");
+                    }
+                }
+            }
             // 2) Build a single SQL that JOINs bill_main → rate_main
             StringBuilder billNRate = new StringBuilder(
                     "SELECT " +
@@ -192,7 +212,7 @@ public class InvoiceDataLoader {
                         double isOffset = mins % offsetunit;
                         double adjustedMin = mins;
                         int count = 0;
-                        while (mins >= offsetunit && isOffset > offsetBy) {
+                        while (mins > offsetunit && isOffset > offsetBy) {
                             adjustedMin = mins - isOffset + offsetunit;
                             isOffset = adjustedMin % offsetunit;
                             count++;
@@ -210,7 +230,10 @@ public class InvoiceDataLoader {
                         // if UnitDay == 1 use perDay, otherwise perHour
                         double qty = (unitDay == 1 ? 1 : mins);
                         double tarif = (unitDay == 1 ? perDay : perHour);
-                        double total = tarif * (adjustedMin/60);
+                        double total = tarif * (adjustedMin / 60);
+                        if (mins < offsetunit) {
+                            total = lessThan30Rate;
+                        }
                         java.sql.Date rawDate = rs2.getDate("date_worked");
                         SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
                         String date = sdf.format(rawDate);
