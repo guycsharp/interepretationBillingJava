@@ -214,13 +214,7 @@ public class BillManagerPanel extends JPanel {
             ps.setTimestamp(4, startTime);
             ps.setTimestamp(5, endTime);
 
-            double dur = 0;
-            String durTxt = durationField.getText().trim();
-            if ((null == durTxt || durTxt.isEmpty())) {
-                dur = CombineDateTime.calcDuration(startTime, endTime);
-            } else {
-                dur = Double.parseDouble(durTxt);
-            }
+            double dur = CombineDateTime.calcDuration(startTime, endTime, durationField.getText().trim());
 
             java.sql.Date sqldate = new java.sql.Date(
                     ((Date) dateWorkedSpinner.getValue()).getTime()
@@ -277,26 +271,45 @@ public class BillManagerPanel extends JPanel {
 
             // Combine date and time using your custom utility method
             // This merges the selected date with the time from the spinner
-            ps.setTimestamp(4, new Timestamp(
+//            ps.setTimestamp(4, new Timestamp(
+//                    CombineDateTime.mergeDateAndTime(
+//                            (Date) dateWorkedSpinner.getValue(),    // date part
+//                            (Date) startTimeSpinner.getValue()      // time part
+//                    ).getTime()
+//            ));
+//            ps.setTimestamp(5, new Timestamp(
+//                    CombineDateTime.mergeDateAndTime(
+//                            (Date) dateWorkedSpinner.getValue(),    // date part
+//                            (Date) endTimeSpinner.getValue()        // time part
+//                    ).getTime()
+//            ));
+
+            Timestamp startTime, endTime;
+            startTime = new Timestamp(
                     CombineDateTime.mergeDateAndTime(
-                            (Date) dateWorkedSpinner.getValue(),    // date part
-                            (Date) startTimeSpinner.getValue()      // time part
-                    ).getTime()
-            ));
-            ps.setTimestamp(5, new Timestamp(
+                            (Date) dateWorkedSpinner.getValue(),
+                            (Date) startTimeSpinner.getValue()
+                    ).getTime());
+            endTime = new Timestamp(
                     CombineDateTime.mergeDateAndTime(
-                            (Date) dateWorkedSpinner.getValue(),    // date part
-                            (Date) endTimeSpinner.getValue()        // time part
-                    ).getTime()
-            ));
+                            (Date) dateWorkedSpinner.getValue(),
+                            (Date) endTimeSpinner.getValue()
+                    ).getTime());
+            ps.setTimestamp(4, startTime);
+            ps.setTimestamp(5, endTime);
 
             // Duration in minutes — parsed from the text field
-            ps.setDouble(6, Double.parseDouble(durationField.getText().trim()));
+            // ps.setDouble(6, Double.parseDouble(durationField.getText().trim()));
+            double dur = CombineDateTime.calcDuration(startTime, endTime, durationField.getText().trim());
 
-            // Date only — stored separately in the database
-            ps.setTimestamp(7, new Timestamp(
+            java.sql.Date sqldate = new java.sql.Date(
                     ((Date) dateWorkedSpinner.getValue()).getTime()
-            ));
+            );
+
+            // Duration in minutes — parsed from the text field
+            ps.setDouble(6, dur);
+            // Date only — stored separately in the database
+            ps.setDate(7, sqldate);
 
             // Paid status (checkbox)
             ps.setInt(8, paidCheck.isSelected() ? 1 : 0);
@@ -320,7 +333,7 @@ public class BillManagerPanel extends JPanel {
             refreshTable();
 
             // Optional: Show a confirmation
-            JOptionPane.showMessageDialog(this, "Record updated successfully!");
+            // JOptionPane.showMessageDialog(this, "Record updated successfully!");
 
         } catch (Exception ex) {
             // If anything goes wrong, show the error to the user
@@ -336,6 +349,21 @@ public class BillManagerPanel extends JPanel {
         int id = (int) model.getValueAt(row, 0); // ID to delete
 
         String sql = "DELETE FROM bill_main WHERE idbill_main=?";
+
+        // make sure user wants to delete and not clicked by mistake
+        int choice = JOptionPane.showConfirmDialog(
+                this,
+                "Are you sure you want to delete this record?",
+                "Confirm Deletion",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE
+        );
+
+        if (choice != JOptionPane.YES_OPTION) {
+            // user clicked “No” or closed dialog
+            return;
+        }
+
         try (Connection c = MySQLConnector.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setInt(1, id);
