@@ -150,7 +150,7 @@ public class InvoiceDataLoader {
                             "  b.date_worked, " +
                             "  b.language, " +
                             "  r.rate_per_hour, " +
-                            "  r.rate_per_day " +
+                            "  r.rate_per_day, r.offsetby, r.offsetunit " +
                             "FROM bill_main b " +
                             "INNER JOIN rate_main r " +
                             "  ON b.client_id = r.client_id " +
@@ -170,7 +170,7 @@ public class InvoiceDataLoader {
                 psBill.setInt(idx++, clientId);
                 if (!ignoreDate) {
                     psBill.setDate(idx++, new java.sql.Date(fromDate.getTime()));
-                    psBill.setDate(idx++, new java.sql.Date(toDate  .getTime()));
+                    psBill.setDate(idx++, new java.sql.Date(toDate.getTime()));
                 }
 
 //                JOptionPane.showMessageDialog(
@@ -184,20 +184,38 @@ public class InvoiceDataLoader {
                     while (rs2.next()) {
                         any = true;
                         String service = rs2.getString("service_rendered");
-                        int unitDay    = rs2.getInt("UnitDay");
-                        double mins    = rs2.getDouble("duration_in_minutes");
+                        int unitDay = rs2.getInt("UnitDay");
+                        double mins = rs2.getDouble("duration_in_minutes");
+
+                        int offsetBy = rs2.getInt("offsetby");
+                        int offsetunit = rs2.getInt("offsetunit");
+                        double isOffset = mins % offsetunit;
+                        double adjustedMin = mins;
+                        int count = 0;
+                        while (mins >= offsetunit && isOffset > offsetBy) {
+                            adjustedMin = mins - isOffset + offsetunit;
+                            isOffset = adjustedMin % offsetunit;
+                            count++;
+                            if (count > 1) {
+                                JOptionPane.showMessageDialog(
+                                        null,
+                                        "Minute adjustment error has occurred",
+                                        "Adjust Minute",
+                                        JOptionPane.ERROR_MESSAGE);
+                            }
+                        }
                         double perHour = rs2.getDouble("rate_per_hour");
-                        double perDay  = rs2.getDouble("rate_per_day");
+                        double perDay = rs2.getDouble("rate_per_day");
 
                         // if UnitDay == 1 use perDay, otherwise perHour
-                        double qty    = (unitDay == 1 ? 1 : mins);
-                        double tarif  = (unitDay == 1 ? perDay : perHour);
-                        double total  = tarif * qty;
+                        double qty = (unitDay == 1 ? 1 : mins);
+                        double tarif = (unitDay == 1 ? perDay : perHour);
+                        double total = tarif * (adjustedMin/60);
                         java.sql.Date rawDate = rs2.getDate("date_worked");
                         SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
                         String date = sdf.format(rawDate);
 //                        String date   = rs2.getDate("date_worked");
-                        String lang   = rs2.getString("language");
+                        String lang = rs2.getString("language");
 
                         model.addRow(new Object[]{
                                 service,
