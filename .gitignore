@@ -32,3 +32,6 @@ resources/config.properties
 resources/RojiSig.png
 build
 .gradle/
+
+ src/main/MySQL/insertbillmain.sql
+ src/main/MySQL/insertclientmain.sql
