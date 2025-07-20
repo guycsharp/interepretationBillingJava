@@ -212,7 +212,7 @@ public class InvoiceDataLoader {
                         double isOffset = mins % offsetunit;
                         double adjustedMin = mins;
                         int count = 0;
-                        if (mins == 66.99999996) {
+                        if (mins == 61.999999980000005) {
                             System.out.println("here");
                         }
                         while (mins > offsetunit && isOffset > offsetBy) {
@@ -226,6 +226,9 @@ public class InvoiceDataLoader {
                                         "Adjust Minute",
                                         JOptionPane.ERROR_MESSAGE);
                             }
+                        }
+                        if(isOffset < offsetBy){
+                            adjustedMin = adjustedMin - isOffset;
                         }
                         double perHour = rs2.getDouble("rate_per_hour");
                         double perDay = rs2.getDouble("rate_per_day");
