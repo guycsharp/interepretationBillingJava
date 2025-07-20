@@ -212,6 +212,9 @@ public class InvoiceDataLoader {
                         double isOffset = mins % offsetunit;
                         double adjustedMin = mins;
                         int count = 0;
+                        if (mins == 66.99999996) {
+                            System.out.println("here");
+                        }
                         while (mins > offsetunit && isOffset > offsetBy) {
                             adjustedMin = mins - isOffset + offsetunit;
                             isOffset = adjustedMin % offsetunit;
@@ -231,7 +234,8 @@ public class InvoiceDataLoader {
                         double qty = (unitDay == 1 ? 1 : mins);
                         double tarif = (unitDay == 1 ? perDay : perHour);
                         double total = tarif * (adjustedMin / 60);
-                        if (mins < offsetunit) {
+                        // until it is 32 minutes lessthan30 rate applies
+                        if (mins <= offsetunit + offsetBy) {
                             total = lessThan30Rate;
                         }
                         java.sql.Date rawDate = rs2.getDate("date_worked");
