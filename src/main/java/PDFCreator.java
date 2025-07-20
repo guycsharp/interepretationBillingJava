@@ -14,7 +14,6 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
-import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.Locale;
 
@@ -65,9 +64,9 @@ public class PDFCreator {
         }
 
         // Pull in the rest of our invoice info from InvoiceApp
-        String company = (String) InvoiceApp.companyComboBox.getSelectedItem();
-        Date fromDate  = ((SpinnerDateModel) InvoiceApp.fromDateSpinner.getModel()).getDate();
-        Date toDate    = ((SpinnerDateModel) InvoiceApp.toDateSpinner.getModel()).getDate();
+        String company = (String) BillingManagerPanel.companyComboBox.getSelectedItem();
+        Date fromDate  = ((SpinnerDateModel) BillingManagerPanel.fromDateSpinner.getModel()).getDate();
+        Date toDate    = ((SpinnerDateModel) BillingManagerPanel.toDateSpinner.getModel()).getDate();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
         try {
@@ -123,23 +122,23 @@ public class PDFCreator {
 
             // STEP 7: Populate rows from the Swing table model
             double subTotal = 0;
-            for (int i = 0; i < InvoiceApp.model.getRowCount(); i++) {
+            for (int i = 0; i < BillingManagerPanel.model.getRowCount(); i++) {
                 // 1st column: service text + date + extra info
                 String serviceText =
-                        InvoiceApp.model.getValueAt(i, 0).toString() +
-                                " en " + InvoiceApp.model.getValueAt(i, 5).toString() +
-                                "\n" + InvoiceApp.model.getValueAt(i, 4).toString();
+                        BillingManagerPanel.model.getValueAt(i, 0).toString() +
+                                " en " + BillingManagerPanel.model.getValueAt(i, 5).toString() +
+                                "\n" + BillingManagerPanel.model.getValueAt(i, 4).toString();
 
                 pdfTable.addCell(serviceText);
 
                 // 2nd column: unit price
-                pdfTable.addCell(InvoiceApp.model.getValueAt(i, 1).toString());
+                pdfTable.addCell(BillingManagerPanel.model.getValueAt(i, 1).toString());
 
                 // 3rd column: quantity (days/hours)
-                pdfTable.addCell(InvoiceApp.model.getValueAt(i, 2).toString());
+                pdfTable.addCell(BillingManagerPanel.model.getValueAt(i, 2).toString());
 
                 // 4th column: total price for this line
-                String lineTotal = InvoiceApp.model.getValueAt(i, 3).toString();
+                String lineTotal = BillingManagerPanel.model.getValueAt(i, 3).toString();
                 pdfTable.addCell(lineTotal);
 
                 // Accumulate for the sub-total

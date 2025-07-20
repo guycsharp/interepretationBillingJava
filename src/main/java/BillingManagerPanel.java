@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class InvoiceApp {
+public class BillingManagerPanel {
     // Public components accessed by PDFCreator
     public static JTable table;
     public static DefaultTableModel model;

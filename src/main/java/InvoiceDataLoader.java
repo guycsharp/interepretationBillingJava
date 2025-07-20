@@ -138,7 +138,7 @@ public class InvoiceDataLoader {
                     return;
                 }
                 clientId = rs.getInt("idclient_main");
-                InvoiceApp.clientAdd = rs.getString("client_address");
+                BillingManagerPanel.clientAdd = rs.getString("client_address");
             }
 
             StringBuilder lessThan30 = new StringBuilder(
