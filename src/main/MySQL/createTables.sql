@@ -62,10 +62,12 @@ CREATE TABLE `rate_main` (
   `language` varchar(45) NOT NULL,
   `rate_per_hour` double DEFAULT NULL,
   `rate_per_day` double DEFAULT NULL,
-  `offset` int DEFAULT NULL,
+  `offsetBy` int DEFAULT NULL,
   `weekend` varchar(45) DEFAULT NULL,
   `insert_date` datetime DEFAULT NULL,
   `update_date` datetime DEFAULT NULL,
+  `offsetUnit` int DEFAULT NULL,
   PRIMARY KEY (`client_id`,`language`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 

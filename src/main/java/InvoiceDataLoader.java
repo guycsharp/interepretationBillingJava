@@ -10,10 +10,28 @@ public class InvoiceDataLoader {
                                        DefaultTableModel model) {
         model.setRowCount(0);
 
-        String rateSql = "SELECT client_rate, client_rate_per_day, idclient_main, client_address FROM client_main WHERE client_name = ?";
+        String rateSql =
+                "SELECT r.client_id, c.idclient_main," +
+                        "       c.client_name, " +
+                        "       c.client_address, " +   // ← comma here
+                        "       r.language, " +
+                        "       r.rate_per_hour, " +
+                        "       r.rate_per_day, " +
+                        "       r.offsetBy, " +
+                        "       r.weekend, " +
+                        "       r.offsetUnit " +        // ← no comma here
+                        "FROM rate_main r " +
+                        "INNER JOIN client_main c " +
+                        "  ON r.client_id = c.idclient_main " +
+                        " AND r.language  = c.language " +
+                        "WHERE c.client_name = ?";
+
         String maxBillSql = "SELECT MAX(bill_no) as max_bill FROM bill_main";
         StringBuilder billSqlBuilder = new StringBuilder(
-                "SELECT service_rendered, UnitDay, duration_in_minutes, date_worked, language FROM bill_main WHERE 1=1"
+                "SELECT service_rendered, UnitDay, duration_in_minutes, date_worked, language, rate_per_hour, rate_per_day " +
+                        "FROM bill_main " +
+                        " inner join rate_main " +
+                        " WHERE 1=1"
         );
 
         if (!"All".equals(company)) {
@@ -41,8 +59,8 @@ public class InvoiceDataLoader {
                     JOptionPane.showMessageDialog(null, "No rate info for " + company);
                     return;
                 }
-                rate = rs.getDouble("client_rate");
-                ratePerDay = rs.getDouble("client_rate_per_day");
+                rate = rs.getDouble("rate_per_hour");
+                ratePerDay = rs.getDouble("rate_per_day");
                 clientId = rs.getInt("idclient_main");
                 InvoiceApp.clientAdd = rs.getString("client_address");
             }
