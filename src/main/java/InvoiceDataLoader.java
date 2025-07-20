@@ -5,6 +5,7 @@ import java.util.Date;
 
 public class InvoiceDataLoader {
 
+    /*
     public static void loadInvoiceData(String company, Date fromDate, Date toDate,
                                        boolean ignoreDate, boolean ignorePaid,
                                        DefaultTableModel model) {
@@ -111,5 +112,116 @@ public class InvoiceDataLoader {
                     "SQL Error", JOptionPane.ERROR_MESSAGE);
         }
     }
-}
 
+
+     */
+
+    public static void loadInvoiceData(String company,
+                                       Date fromDate, Date toDate,
+                                       boolean ignoreDate, boolean ignorePaid,
+                                       DefaultTableModel model) {
+        model.setRowCount(0);
+
+        // 1) First we look up the client_id once (still fine to keep this)
+        int clientId = -1;
+        String findClientSql =
+                "SELECT idclient_main, client_address " +
+                        "FROM client_main " +
+                        "WHERE client_name = ?";
+        try (Connection conn = MySQLConnector.getConnection();
+             PreparedStatement ps = conn.prepareStatement(findClientSql)) {
+            ps.setString(1, company);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    JOptionPane.showMessageDialog(null, "Unknown client: " + company);
+                    return;
+                }
+                clientId = rs.getInt("idclient_main");
+                InvoiceApp.clientAdd = rs.getString("client_address");
+            }
+
+            // 2) Build a single SQL that JOINs bill_main → rate_main
+            StringBuilder billNRate = new StringBuilder(
+                    "SELECT " +
+                            "  b.service_rendered, " +
+                            "  b.UnitDay, " +
+                            "  b.duration_in_minutes, " +
+                            "  b.date_worked, " +
+                            "  b.language, " +
+                            "  r.rate_per_hour, " +
+                            "  r.rate_per_day " +
+                            "FROM bill_main b " +
+                            "INNER JOIN rate_main r " +
+                            "  ON b.client_id = r.client_id " +
+                            " AND b.language  = r.language " +
+                            "WHERE b.client_id = ?"
+            );
+
+            if (!ignoreDate) {
+                billNRate.append(" AND b.date_worked >= ? AND b.date_worked <= ?");
+            }
+            if (!ignorePaid) {
+                billNRate.append(" AND b.paid = 0");
+            }
+
+            try (PreparedStatement psBill = conn.prepareStatement(billNRate.toString())) {
+                int idx = 1;
+                psBill.setInt(idx++, clientId);
+                if (!ignoreDate) {
+                    psBill.setDate(idx++, new java.sql.Date(fromDate.getTime()));
+                    psBill.setDate(idx++, new java.sql.Date(toDate  .getTime()));
+                }
+
+//                JOptionPane.showMessageDialog(
+//                        null,
+//                         psBill.toString(),
+//                        "SQL Statement",
+//                        JOptionPane.INFORMATION_MESSAGE);
+
+                try (ResultSet rs2 = psBill.executeQuery()) {
+                    boolean any = false;
+                    while (rs2.next()) {
+                        any = true;
+                        String service = rs2.getString("service_rendered");
+                        int unitDay    = rs2.getInt("UnitDay");
+                        double mins    = rs2.getDouble("duration_in_minutes");
+                        double perHour = rs2.getDouble("rate_per_hour");
+                        double perDay  = rs2.getDouble("rate_per_day");
+
+                        // if UnitDay == 1 use perDay, otherwise perHour
+                        double qty    = (unitDay == 1 ? 1 : mins);
+                        double tarif  = (unitDay == 1 ? perDay : perHour);
+                        double total  = tarif * qty;
+                        String date   = rs2.getString("date_worked");
+                        String lang   = rs2.getString("language");
+
+                        model.addRow(new Object[]{
+                                service,
+                                tarif,
+                                qty,
+                                total,
+                                date,
+                                lang
+                        });
+                    }
+                    if (!any) {
+                        JOptionPane.showMessageDialog(
+                                null,
+                                "No billing entries found for “" + company + "”"
+                        );
+                    }
+                }
+            }
+
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(
+                    null,
+                    "Database error: " + ex.getMessage(),
+                    "SQL Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
+    }
+
+}
