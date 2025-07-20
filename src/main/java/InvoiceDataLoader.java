@@ -1,6 +1,7 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.sql.*;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class InvoiceDataLoader {
@@ -192,7 +193,10 @@ public class InvoiceDataLoader {
                         double qty    = (unitDay == 1 ? 1 : mins);
                         double tarif  = (unitDay == 1 ? perDay : perHour);
                         double total  = tarif * qty;
-                        String date   = rs2.getString("date_worked");
+                        java.sql.Date rawDate = rs2.getDate("date_worked");
+                        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
+                        String date = sdf.format(rawDate);
+//                        String date   = rs2.getDate("date_worked");
                         String lang   = rs2.getString("language");
 
                         model.addRow(new Object[]{
