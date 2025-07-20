@@ -5,8 +5,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class InvoiceDataLoader {
-
-    /*
+    final static double debugMins = 122.0;
+    /*s
     public static void loadInvoiceData(String company, Date fromDate, Date toDate,
                                        boolean ignoreDate, boolean ignorePaid,
                                        DefaultTableModel model) {
@@ -212,8 +212,8 @@ public class InvoiceDataLoader {
                         double isOffset = mins % offsetunit;
                         double adjustedMin = mins;
                         int count = 0;
-                        if (mins == 61.999999980000005) {
-                            System.out.println("here");
+                        if (mins == debugMins) {
+                            System.out.println("debug here");
                         }
                         while (mins > offsetunit && isOffset > offsetBy) {
                             adjustedMin = mins - isOffset + offsetunit;
@@ -227,7 +227,7 @@ public class InvoiceDataLoader {
                                         JOptionPane.ERROR_MESSAGE);
                             }
                         }
-                        if(isOffset < offsetBy){
+                        if(isOffset <= offsetBy){
                             adjustedMin = adjustedMin - isOffset;
                         }
                         double perHour = rs2.getDouble("rate_per_hour");
