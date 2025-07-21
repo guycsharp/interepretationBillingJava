@@ -160,7 +160,7 @@ public class BillManagerPanel extends JPanel {
     private void refreshTable() {
         model.setRowCount(0);  // clear current table
         String sql = "SELECT idbill_main, service_rendered, UnitDay, duration_in_minutes, CityServiced, " +
-                "startTime, endTime, duration_in_minutes, date_worked, paid, language, bill_no, client_id FROM bill_main";
+                "startTime, endTime, duration_in_minutes, date_worked, paid, language, bill_no, client_id FROM bill_main order by date_worked";
         try (Connection c = MySQLConnector.getConnection();
              Statement st = c.createStatement();
              ResultSet rs = st.executeQuery(sql)) {

@@ -177,7 +177,7 @@ public class InvoiceDataLoader {
                             "INNER JOIN rate_main r " +
                             "  ON b.client_id = r.client_id " +
                             " AND b.language  = r.language " +
-                            "WHERE b.client_id = ?"
+                            "WHERE b.client_id = ? "
             );
 
             if (!ignoreDate) {
@@ -186,6 +186,8 @@ public class InvoiceDataLoader {
             if (!ignorePaid) {
                 billNRate.append(" AND b.paid = 0");
             }
+
+            billNRate.append("  order by b.date_worked  ");
 
             try (PreparedStatement psBill = conn.prepareStatement(billNRate.toString())) {
                 int idx = 1;

@@ -23,7 +23,7 @@ public class BillingManagerPanel {
 //        SwingUtilities.invokeLater(InvoiceApp::createAndShowGUI);
 //    }
 
-    public static String billNo = System.currentTimeMillis() + "";
+    // public static String billNo = System.currentTimeMillis() + "";
     public static List<Integer> billIds;
 
 
@@ -137,7 +137,7 @@ public class BillingManagerPanel {
         // 📤 Export to PDF
         exportButton.addActionListener(e -> PDFCreator.exportPDF(
                 null,
-                billNo,
+                System.currentTimeMillis() + "",
                 clientAdd,
                 myaddress,
                 ((SpinnerDateModel) billedOnSpinner.getModel()).getDate(), billIds
