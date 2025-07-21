@@ -11,7 +11,7 @@ public class MainWindow {
             JTabbedPane tabbedPane = new JTabbedPane();
 
             // 🧾 Tab 1: Invoice App
-            tabbedPane.addTab("Invoice Generator", InvoiceApp.getInvoicePanel());
+            tabbedPane.addTab("Invoice Generator", BillingManagerPanel.getInvoicePanel());
 
             // ➕ Tab 2: Placeholder for future tools
             JPanel placeholderPanel = new JPanel();

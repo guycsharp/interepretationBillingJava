@@ -14,12 +14,13 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
-import java.time.format.DateTimeFormatter;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 public class PDFCreator {
-
+    public static final String exportPDFupdate = ConfigLoader.get("db.exportPDFupdate");
+    public static final String updateBillNos = "yes";
     /**
      * Helper: replaces every instance of replaceChar in sourceText with replaceBy.
      * We’ll use this to turn "\n" into commas (or any other delimiter) before laying out paragraphs.
@@ -48,7 +49,7 @@ public class PDFCreator {
      * @param address    the client’s address block (may contain "\n")
      * @param myaddress  our own address block (may contain "\n")
      */
-    static void exportPDF(Component parent, double billNo, String address, String myaddress,  Date billedOn) {
+    static void exportPDF(Component parent, String billNo, String address, String myaddress,  Date billedOn, List<Integer> billNos) {
         // STEP 1: Ask the user where to save the PDF
         JFileChooser chooser = new JFileChooser();
         chooser.setDialogTitle("Save Invoice as PDF");
@@ -65,9 +66,9 @@ public class PDFCreator {
         }
 
         // Pull in the rest of our invoice info from InvoiceApp
-        String company = (String) InvoiceApp.companyComboBox.getSelectedItem();
-        Date fromDate  = ((SpinnerDateModel) InvoiceApp.fromDateSpinner.getModel()).getDate();
-        Date toDate    = ((SpinnerDateModel) InvoiceApp.toDateSpinner.getModel()).getDate();
+        String company = (String) BillingManagerPanel.companyComboBox.getSelectedItem();
+        Date fromDate  = ((SpinnerDateModel) BillingManagerPanel.fromDateSpinner.getModel()).getDate();
+        Date toDate    = ((SpinnerDateModel) BillingManagerPanel.toDateSpinner.getModel()).getDate();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
         try {
@@ -77,9 +78,9 @@ public class PDFCreator {
             doc.open();
 
             // STEP 3: Add the centered title with invoice number
-            String billNum = String.valueOf((int)billNo);  // drop decimal
+//            String billNum = String.valueOf((int)billNo);  // drop decimal
             Paragraph title = new Paragraph(
-                    "Facture : " + billNum,
+                    "Facture : " + billNo,
                     FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18)
             );
             title.setAlignment(Element.ALIGN_CENTER);
@@ -123,23 +124,23 @@ public class PDFCreator {
 
             // STEP 7: Populate rows from the Swing table model
             double subTotal = 0;
-            for (int i = 0; i < InvoiceApp.model.getRowCount(); i++) {
+            for (int i = 0; i < BillingManagerPanel.model.getRowCount(); i++) {
                 // 1st column: service text + date + extra info
                 String serviceText =
-                        InvoiceApp.model.getValueAt(i, 0).toString() +
-                                " en " + InvoiceApp.model.getValueAt(i, 5).toString() +
-                                "\n" + InvoiceApp.model.getValueAt(i, 4).toString();
+                        BillingManagerPanel.model.getValueAt(i, 0).toString() +
+                                " en " + BillingManagerPanel.model.getValueAt(i, 5).toString() +
+                                "\n" + BillingManagerPanel.model.getValueAt(i, 4).toString();
 
                 pdfTable.addCell(serviceText);
 
                 // 2nd column: unit price
-                pdfTable.addCell(InvoiceApp.model.getValueAt(i, 1).toString());
+                pdfTable.addCell(BillingManagerPanel.model.getValueAt(i, 1).toString());
 
                 // 3rd column: quantity (days/hours)
-                pdfTable.addCell(InvoiceApp.model.getValueAt(i, 2).toString());
+                pdfTable.addCell(BillingManagerPanel.model.getValueAt(i, 2).toString());
 
                 // 4th column: total price for this line
-                String lineTotal = InvoiceApp.model.getValueAt(i, 3).toString();
+                String lineTotal = BillingManagerPanel.model.getValueAt(i, 3).toString();
                 pdfTable.addCell(lineTotal);
 
                 // Accumulate for the sub-total
@@ -194,6 +195,9 @@ public class PDFCreator {
                     "PDF exported successfully to:\n" + path
             );
 
+
+            updateBillNosInBills(billNos,billNo);
+
         } catch (Exception ex) {
             // Any exception along the way pops up an error dialog
             ex.printStackTrace();
@@ -202,6 +206,12 @@ public class PDFCreator {
                     "Export Error",
                     JOptionPane.ERROR_MESSAGE
             );
+        }
+    }
+
+    public static void updateBillNosInBills(List<Integer> billNos, String billNum) {
+        if (updateBillNos.equals(exportPDFupdate)) {
+            InvoiceDataLoader.updateBillNumber(billNos, billNum);
         }
     }
 }
