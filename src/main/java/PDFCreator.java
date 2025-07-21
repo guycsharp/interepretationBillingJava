@@ -110,9 +110,9 @@ public class PDFCreator {
             doc.add(new Paragraph(" "));
 
             // STEP 5: Add the period line centered under the header
-            String period = "Période : " + sdf.format(fromDate) + " – " + sdf.format(toDate);
-            doc.add(addParagraph(period, Element.ALIGN_CENTER));
-            doc.add(new Paragraph(" "));
+//            String period = "Période : " + sdf.format(fromDate) + " – " + sdf.format(toDate);
+//            doc.add(addParagraph(period, Element.ALIGN_CENTER));
+//            doc.add(new Paragraph(" "));
 
             // STEP 6: Build the invoice table (4 columns)
             PdfPTable pdfTable = new PdfPTable(4);
@@ -173,7 +173,7 @@ public class PDFCreator {
             vatNote.setAlignment(Element.ALIGN_CENTER);
             doc.add(vatNote);
 
-            Paragraph placeDate = new Paragraph("Fait à Balma - " + (new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH)).format(billedOn));
+            Paragraph placeDate = new Paragraph("Fait à Balma - " + (new SimpleDateFormat("dd-MM-yyyy", Locale.ENGLISH)).format(billedOn));
             placeDate.setAlignment(Element.ALIGN_LEFT);
             doc.add(placeDate);
 
