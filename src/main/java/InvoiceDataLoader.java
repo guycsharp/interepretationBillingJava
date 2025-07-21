@@ -2,7 +2,9 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.sql.*;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 public class InvoiceDataLoader {
     final static double debugMins = 122.0;
@@ -117,12 +119,12 @@ public class InvoiceDataLoader {
 
      */
 
-    public static void loadInvoiceData(String company,
+    public static  List<Integer> loadInvoiceData(String company,
                                        Date fromDate, Date toDate,
                                        boolean ignoreDate, boolean ignorePaid,
                                        DefaultTableModel model) {
         model.setRowCount(0);
-
+        List<Integer> billIds = new ArrayList<>();
         // 1) First we look up the client_id once (still fine to keep this)
         int clientId = -1;
         String findClientSql =
@@ -135,7 +137,7 @@ public class InvoiceDataLoader {
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) {
                     JOptionPane.showMessageDialog(null, "Unknown client: " + company);
-                    return;
+                    return null;
                 }
                 clientId = rs.getInt("idclient_main");
                 BillingManagerPanel.clientAdd = rs.getString("client_address");
@@ -164,7 +166,7 @@ public class InvoiceDataLoader {
             // 2) Build a single SQL that JOINs bill_main → rate_main
             StringBuilder billNRate = new StringBuilder(
                     "SELECT " +
-                            "  b.service_rendered, " +
+                            "  b.idbill_main, b.service_rendered, " +
                             "  b.UnitDay, " +
                             "  b.duration_in_minutes, " +
                             "  b.date_worked, " +
@@ -207,6 +209,8 @@ public class InvoiceDataLoader {
                         int unitDay = rs2.getInt("UnitDay");
                         double mins = rs2.getDouble("duration_in_minutes");
 
+                        billIds.add(rs2.getInt("idbill_main"));
+
                         int offsetBy = rs2.getInt("offsetby");
                         int offsetunit = rs2.getInt("offsetunit");
                         double isOffset = mins % offsetunit;
@@ -227,7 +231,7 @@ public class InvoiceDataLoader {
                                         JOptionPane.ERROR_MESSAGE);
                             }
                         }
-                        if(isOffset <= offsetBy){
+                        if (isOffset <= offsetBy) {
                             adjustedMin = adjustedMin - isOffset;
                         }
                         double perHour = rs2.getDouble("rate_per_hour");
@@ -264,6 +268,60 @@ public class InvoiceDataLoader {
                     }
                 }
             }
+            return billIds;
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(
+                    null,
+                    "Database error: " + ex.getMessage(),
+                    "SQL Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
+        return billIds;
+    }
+
+    public static void updateBillNumber(List<Integer> billNos, String billNum) {
+        if (billNos == null || billNos.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                    null,
+                    "No bills list provided",
+                    "SQL Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            return;
+        }
+
+        StringBuilder updateSQL = new StringBuilder("UPDATE bill_main SET bill_no = ")
+                .append(billNum)
+                .append(" WHERE idbill_main IN (");
+
+        for (int i = 0; i < billNos.size(); i++) {
+            updateSQL.append(billNos.get(i));
+            if (i < billNos.size() - 1) updateSQL.append(", ");
+        }
+        updateSQL.append(")");
+
+        try (Connection conn = MySQLConnector.getConnection();  // ✅ Now includes Connection
+             Statement stmt = conn.createStatement()) {
+
+            int updatedCount = stmt.executeUpdate(updateSQL.toString());
+
+            if (updatedCount == 0) {
+                JOptionPane.showMessageDialog(
+                        null,
+                        "Database error: No rows updated",
+                        "SQL Error",
+                        JOptionPane.ERROR_MESSAGE
+                );
+            } else {
+                JOptionPane.showMessageDialog(
+                        null,
+                        "Updated " + updatedCount + " bill(s)",
+                        "Update Successful",
+                        JOptionPane.INFORMATION_MESSAGE
+                );
+            }
 
         } catch (SQLException ex) {
             ex.printStackTrace();
@@ -276,4 +334,40 @@ public class InvoiceDataLoader {
         }
     }
 
+//    public static void updateBillNumber(List<Integer> billNos, String billNum) {
+//        if (billNos == null || billNos.isEmpty()) {
+//            JOptionPane.showMessageDialog(
+//                    null,
+//                    "No bills list provided",
+//                    "SQL Error",
+//                    JOptionPane.ERROR_MESSAGE);
+//        }
+//        StringBuilder updateSQL = new StringBuilder("UPDATE bill_main " +
+//                " SET " +
+//                "  bill_no = " + billNum +
+//                "WHERE idbill_main IN (-13 ");
+//        for (Integer billNo : billNos) {
+//            updateSQL.append("," + billNo);
+//        }
+//        updateSQL.append(")");
+//
+//        try (Statement stmt = conn.createStatement()) {
+//            int updatedCount = stmt.executeUpdate(updateSQL.toString());
+//            if (updatedCount == 0) {
+//                JOptionPane.showMessageDialog(
+//                        null,
+//                        "Database error: No rows updated",
+//                        "SQL Error",
+//                        JOptionPane.ERROR_MESSAGE);
+//            }
+//        } catch (SQLException ex) {
+//            ex.printStackTrace();
+//            JOptionPane.showMessageDialog(
+//                    null,
+//                    "Database error: " + ex.getMessage(),
+//                    "SQL Error",
+//                    JOptionPane.ERROR_MESSAGE
+//            );
+//        }
+//    }
 }

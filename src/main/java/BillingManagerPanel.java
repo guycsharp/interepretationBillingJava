@@ -2,7 +2,7 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.sql.*;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.Date;
 import java.util.List;
 
@@ -13,7 +13,6 @@ public class BillingManagerPanel {
     public static JTextField prestationField, tarifField, qtyField;
     public static JComboBox<String> companyComboBox;
     public static JSpinner fromDateSpinner, toDateSpinner, billedOnSpinner;
-    public static double bill_no;
     public static String clientAdd, languageInterpret, date_worked;
     private static JCheckBox ignoreDateCheckbox;
     private static JCheckBox ignorePaidCheckbox;
@@ -23,6 +22,10 @@ public class BillingManagerPanel {
 //    public static void main(String[] args) {
 //        SwingUtilities.invokeLater(InvoiceApp::createAndShowGUI);
 //    }
+
+    public static String billNo = System.currentTimeMillis() + "";
+    public static List<Integer> billIds;
+
 
     private static void createAndShowGUI() {
         JFrame frame = new JFrame("Billing Software");
@@ -120,22 +123,24 @@ public class BillingManagerPanel {
         });
 
         // 🔄 Load rows from database
-        loadButton.addActionListener(e -> InvoiceDataLoader.loadInvoiceData(
-                (String) companyComboBox.getSelectedItem(),
-                ((SpinnerDateModel) fromDateSpinner.getModel()).getDate(),
-                ((SpinnerDateModel) toDateSpinner.getModel()).getDate(),
-                ignoreDateCheckbox.isSelected(),
-                ignorePaidCheckbox.isSelected(),
-                model
-        ));
+        loadButton.addActionListener(e -> {
+           billIds = InvoiceDataLoader.loadInvoiceData(
+                    (String) companyComboBox.getSelectedItem(),
+                    ((SpinnerDateModel) fromDateSpinner.getModel()).getDate(),
+                    ((SpinnerDateModel) toDateSpinner.getModel()).getDate(),
+                    ignoreDateCheckbox.isSelected(),
+                    ignorePaidCheckbox.isSelected(),
+                    model);
+
+        });
 
         // 📤 Export to PDF
         exportButton.addActionListener(e -> PDFCreator.exportPDF(
                 null,
-                bill_no + 1,
+                billNo,
                 clientAdd,
                 myaddress,
-                ((SpinnerDateModel) billedOnSpinner.getModel()).getDate()
+                ((SpinnerDateModel) billedOnSpinner.getModel()).getDate(), billIds
         ));
 
         return mainPanel;

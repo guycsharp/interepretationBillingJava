@@ -12,7 +12,7 @@ CREATE TABLE `bill_main` (
   `date_worked` date DEFAULT NULL,
   `client_id` int DEFAULT NULL,
   `paid` tinyint DEFAULT NULL,
-  `bill_no` decimal(10,0) DEFAULT NULL,
+  `bill_no` decimal(13,0) DEFAULT NULL,
   `billed_date` date DEFAULT NULL,
   `CityServiced` varchar(45) DEFAULT NULL,
   `insert_date` datetime DEFAULT NULL,

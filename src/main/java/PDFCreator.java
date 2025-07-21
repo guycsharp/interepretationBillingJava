@@ -15,10 +15,12 @@ import java.awt.*;
 import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 public class PDFCreator {
-
+    public static final String exportPDFupdate = ConfigLoader.get("db.exportPDFupdate");
+    public static final String updateBillNos = "yes";
     /**
      * Helper: replaces every instance of replaceChar in sourceText with replaceBy.
      * We’ll use this to turn "\n" into commas (or any other delimiter) before laying out paragraphs.
@@ -47,7 +49,7 @@ public class PDFCreator {
      * @param address    the client’s address block (may contain "\n")
      * @param myaddress  our own address block (may contain "\n")
      */
-    static void exportPDF(Component parent, double billNo, String address, String myaddress,  Date billedOn) {
+    static void exportPDF(Component parent, String billNo, String address, String myaddress,  Date billedOn, List<Integer> billNos) {
         // STEP 1: Ask the user where to save the PDF
         JFileChooser chooser = new JFileChooser();
         chooser.setDialogTitle("Save Invoice as PDF");
@@ -76,9 +78,9 @@ public class PDFCreator {
             doc.open();
 
             // STEP 3: Add the centered title with invoice number
-            String billNum = String.valueOf((int)billNo);  // drop decimal
+//            String billNum = String.valueOf((int)billNo);  // drop decimal
             Paragraph title = new Paragraph(
-                    "Facture : " + billNum,
+                    "Facture : " + billNo,
                     FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18)
             );
             title.setAlignment(Element.ALIGN_CENTER);
@@ -193,6 +195,9 @@ public class PDFCreator {
                     "PDF exported successfully to:\n" + path
             );
 
+
+            updateBillNosInBills(billNos,billNo);
+
         } catch (Exception ex) {
             // Any exception along the way pops up an error dialog
             ex.printStackTrace();
@@ -201,6 +206,12 @@ public class PDFCreator {
                     "Export Error",
                     JOptionPane.ERROR_MESSAGE
             );
+        }
+    }
+
+    public static void updateBillNosInBills(List<Integer> billNos, String billNum) {
+        if (updateBillNos.equals(exportPDFupdate)) {
+            InvoiceDataLoader.updateBillNumber(billNos, billNum);
         }
     }
 }
