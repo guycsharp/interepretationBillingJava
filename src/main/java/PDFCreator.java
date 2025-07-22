@@ -1,5 +1,6 @@
 // PDFCreator.java
 
+import Utils.CombineDateTime;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.Element;
 import com.itextpdf.text.FontFactory;
@@ -11,13 +12,16 @@ import com.itextpdf.text.pdf.PdfWriter;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.filechooser.FileSystemView;
 import java.awt.*;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.sql.Timestamp;
 
 public class PDFCreator {
     public static final String exportPDFupdate = ConfigLoader.get("db.exportPDFupdate");
@@ -52,10 +56,15 @@ public class PDFCreator {
      * @param myaddress our own address block (may contain "\n")
      */
     static void exportPDF(Component parent, String billNo, String address, String myaddress, Date billedOn, HashMap<Integer, String> billNos) {
-        // STEP 1: Ask the user where to save the PDF
-        JFileChooser chooser = new JFileChooser();
-        chooser.setDialogTitle("Save Invoice as PDF");
-        chooser.setFileFilter(new FileNameExtensionFilter("PDF Documents", "pdf"));
+
+        // Pull in the rest of our invoice info from InvoiceApp
+        String company = (String) BillingManagerPanel.companyComboBox.getSelectedItem();
+        Date fromDate = ((SpinnerDateModel) BillingManagerPanel.fromDateSpinner.getModel()).getDate();
+        Date toDate = ((SpinnerDateModel) BillingManagerPanel.toDateSpinner.getModel()).getDate();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+
+        String date1 = CombineDateTime.DateFormatter("yyyy-MM-dd", new Timestamp(fromDate.getTime()));
+        JFileChooser chooser = getJFileChooser(date1);
         if (chooser.showSaveDialog(parent) != JFileChooser.APPROVE_OPTION) {
             // User hit Cancel
             return;
@@ -66,12 +75,6 @@ public class PDFCreator {
         if (!path.toLowerCase().endsWith(".pdf")) {
             path += ".pdf";
         }
-
-        // Pull in the rest of our invoice info from InvoiceApp
-        String company = (String) BillingManagerPanel.companyComboBox.getSelectedItem();
-        Date fromDate = ((SpinnerDateModel) BillingManagerPanel.fromDateSpinner.getModel()).getDate();
-        Date toDate = ((SpinnerDateModel) BillingManagerPanel.toDateSpinner.getModel()).getDate();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
         try {
             // STEP 2: Initialize the PDF document and writer
@@ -212,6 +215,20 @@ public class PDFCreator {
                     JOptionPane.ERROR_MESSAGE
             );
         }
+    }
+
+    private static JFileChooser getJFileChooser(String date1) {
+        String defaultName = "FACTURE " + date1.toUpperCase() + ".pdf";
+
+        // Point the chooser to the user’s Documents folder
+        File documentsDir = FileSystemView.getFileSystemView().getDefaultDirectory();
+
+        // STEP 1: Ask the user where to save the PDF
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Save Invoice as PDF");
+        chooser.setFileFilter(new FileNameExtensionFilter("PDF Documents", "pdf"));
+        chooser.setSelectedFile(new File(documentsDir, defaultName));
+        return chooser;
     }
 
     public static void updateBillNosInBills(HashMap<Integer, String> billNos, String billNum) {
