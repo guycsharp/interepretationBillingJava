@@ -3,6 +3,7 @@ package Utils;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.Calendar;
 import java.util.Date;
@@ -69,5 +70,17 @@ public class CombineDateTime {
     public static String FranceDateFormat(java.sql.Date rawDate){
         SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
         return sdf.format(rawDate);
+    }
+
+    public static String DateFormatter(String dateFormat, Timestamp ts){
+        // "yyyy-MMM-dd HH"
+        DateTimeFormatter OUTPUT_FMT =
+                DateTimeFormatter.ofPattern(dateFormat);
+
+
+//        Timestamp ts = rs.getTimestamp(9);
+        return ts
+                .toLocalDateTime()
+                .format(OUTPUT_FMT);
     }
 }
