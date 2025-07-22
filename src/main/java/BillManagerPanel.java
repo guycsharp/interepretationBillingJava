@@ -193,7 +193,7 @@ public class BillManagerPanel extends JPanel {
                         rs.getTimestamp(6),   // StartTime
                         rs.getTimestamp(7),   // EndTime
                         rs.getDouble(8),      // Duration
-                        rs.getTimestamp(9),   // DateWorked
+                        CombineDateTime.DateFormatter("yyyy-MMM-dd HH",rs.getTimestamp(9)),   // DateWorked
                         rs.getInt(10) == 1,   // Paid (as boolean)
                         rs.getString(11),     // Language
                         rs.getBigDecimal(12),// Bill No
