@@ -19,6 +19,7 @@ CREATE TABLE `bill_main` (
   `updated_date` datetime DEFAULT NULL,
   `dayOfTheWeek` varchar(15) DEFAULT NULL,
   `total_amt` decimal(13,2) DEFAULT NULL,
+  `paid_date` date DEFAULT NULL,
   PRIMARY KEY (`idbill_main`),
   UNIQUE KEY `idbill_main_UNIQUE` (`idbill_main`)
 ) ENGINE=InnoDB AUTO_INCREMENT=83 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
