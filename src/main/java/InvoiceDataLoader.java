@@ -265,7 +265,7 @@ public class InvoiceDataLoader {
                     if (!any) {
                         JOptionPane.showMessageDialog(
                                 null,
-                                "No billing entries found for “" + company + "”"
+                                "No billing entries found for “" + company + "” for selected date."
                         );
                     }
                 }
