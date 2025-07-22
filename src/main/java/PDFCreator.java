@@ -119,7 +119,7 @@ public class PDFCreator {
             pdfTable.setWidths(new int[]{3, 2, 2, 2});
             pdfTable.addCell("Prestation");
             pdfTable.addCell("Tarif (€)");
-            pdfTable.addCell("Quantité");
+            pdfTable.addCell("Quantité (mins)");
             pdfTable.addCell("Total (€)");
 
             // STEP 7: Populate rows from the Swing table model

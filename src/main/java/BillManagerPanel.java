@@ -26,7 +26,7 @@ public class BillManagerPanel extends JPanel {
 
     // Input fields for every column in the table
     private JTextField serviceField, workedField, cityField;  // unitDayField;
-    private JTextField languageField, billNoField, durationField;
+    private JTextField  billNoField, durationField;
 
     // Date/time pickers (spinners)
     private JSpinner startTimeSpinner, endTimeSpinner, dateWorkedSpinner;
@@ -34,6 +34,7 @@ public class BillManagerPanel extends JPanel {
     // Checkbox for 'paid' status and dropdown for clients
     private JCheckBox paidCheck, unitDayField;
     private JComboBox<String> clientCombo;
+    private JComboBox<String> languageFieldCombo;
     private List<Integer> clientIds = new ArrayList<>(); // holds client IDs that match names
 
     // Buttons for user actions
@@ -48,7 +49,7 @@ public class BillManagerPanel extends JPanel {
         // ── Top section: table ──
         model = new DefaultTableModel(new String[]{
                 "ID", "Service", "UnitDay", "City",
-                "StartTime", "EndTime", "Duration", "DateWorked",
+                "StartTime", "EndTime", "Duration In Mins", "DateWorked",
                 "Paid", "Lang", "BillNo", "ClientID"
         }, 0);
         table = new JTable(model);
@@ -65,7 +66,7 @@ public class BillManagerPanel extends JPanel {
         durationField = new JTextField();
         dateWorkedSpinner = createSpinner("yyyy-MM-dd");
         paidCheck = new JCheckBox("Paid");
-        languageField = new JTextField();
+        languageFieldCombo = new JComboBox<>();
         billNoField = new JTextField();
         clientCombo = new JComboBox<>();
 
@@ -88,7 +89,7 @@ public class BillManagerPanel extends JPanel {
         form.add(new JLabel("Paid:"));
         form.add(paidCheck);
         form.add(new JLabel("Language:"));
-        form.add(languageField);
+        form.add(languageFieldCombo);
         form.add(new JLabel("Bill No:"));
         form.add(billNoField);
         form.add(new JLabel("Client:"));
@@ -136,6 +137,7 @@ public class BillManagerPanel extends JPanel {
     // Loads both client names and table data
     private void loadAll() {
         loadClients();    // load combo box
+        loadLanguages();
         refreshTable();   // load bill_main table
     }
 
@@ -150,6 +152,21 @@ public class BillManagerPanel extends JPanel {
             while (rs.next()) {
                 clientIds.add(rs.getInt(1));           // store client ID
                 clientCombo.addItem(rs.getString(2));  // display name
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    // Populates language Combo and maps each name to its ID
+    private void loadLanguages() {
+        languageFieldCombo.removeAllItems();
+        String sql = "SELECT lang FROM language_main";
+        try (Connection c = MySQLConnector.getConnection();
+             Statement st = c.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+            while (rs.next()) {
+                languageFieldCombo.addItem(rs.getString(1));           // store client ID
             }
         } catch (SQLException ex) {
             ex.printStackTrace();
@@ -222,7 +239,7 @@ public class BillManagerPanel extends JPanel {
             ps.setDouble(6, dur);
             ps.setDate(7, sqldate);
             ps.setInt(8, paidCheck.isSelected() ? 1 : 0);
-            ps.setString(9, languageField.getText().trim());
+            ps.setString(9, languageFieldCombo.getSelectedItem().toString());
             ps.setBigDecimal(10, new java.math.BigDecimal(billNoField.getText().trim()));
             ps.setInt(11, clientIds.get(clientCombo.getSelectedIndex()));
             // Param 12: current timestamp
@@ -315,7 +332,7 @@ public class BillManagerPanel extends JPanel {
             ps.setInt(8, paidCheck.isSelected() ? 1 : 0);
 
             // Language field
-            ps.setString(9, languageField.getText().trim());
+            ps.setString(9, languageFieldCombo.getSelectedItem().toString());
 
             // Bill number (BigDecimal is used for precise numbers)
             ps.setBigDecimal(10, new java.math.BigDecimal(billNoField.getText().trim()));
@@ -429,7 +446,7 @@ public class BillManagerPanel extends JPanel {
         paidCheck.setSelected(Boolean.parseBoolean(model.getValueAt(row, 8).toString()));
 
         // Language (String)
-        languageField.setText(model.getValueAt(row, 9).toString());
+        languageFieldCombo.setSelectedItem(model.getValueAt(row, 9).toString());
 
         // Bill number (BigDecimal → shown as string)
         billNoField.setText(model.getValueAt(row, 10).toString());
