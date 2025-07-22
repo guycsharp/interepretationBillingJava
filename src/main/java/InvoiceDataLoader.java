@@ -119,10 +119,10 @@ public class InvoiceDataLoader {
 
      */
 
-    public static  List<Integer> loadInvoiceData(String company,
-                                       Date fromDate, Date toDate,
-                                       boolean ignoreDate, boolean ignorePaid,
-                                       DefaultTableModel model) {
+    public static List<Integer> loadInvoiceData(String company,
+                                                Date fromDate, Date toDate,
+                                                boolean ignoreDate, boolean ignorePaid,
+                                                DefaultTableModel model) {
         model.setRowCount(0);
         List<Integer> billIds = new ArrayList<>();
         // 1) First we look up the client_id once (still fine to keep this)
@@ -336,40 +336,4 @@ public class InvoiceDataLoader {
         }
     }
 
-//    public static void updateBillNumber(List<Integer> billNos, String billNum) {
-//        if (billNos == null || billNos.isEmpty()) {
-//            JOptionPane.showMessageDialog(
-//                    null,
-//                    "No bills list provided",
-//                    "SQL Error",
-//                    JOptionPane.ERROR_MESSAGE);
-//        }
-//        StringBuilder updateSQL = new StringBuilder("UPDATE bill_main " +
-//                " SET " +
-//                "  bill_no = " + billNum +
-//                "WHERE idbill_main IN (-13 ");
-//        for (Integer billNo : billNos) {
-//            updateSQL.append("," + billNo);
-//        }
-//        updateSQL.append(")");
-//
-//        try (Statement stmt = conn.createStatement()) {
-//            int updatedCount = stmt.executeUpdate(updateSQL.toString());
-//            if (updatedCount == 0) {
-//                JOptionPane.showMessageDialog(
-//                        null,
-//                        "Database error: No rows updated",
-//                        "SQL Error",
-//                        JOptionPane.ERROR_MESSAGE);
-//            }
-//        } catch (SQLException ex) {
-//            ex.printStackTrace();
-//            JOptionPane.showMessageDialog(
-//                    null,
-//                    "Database error: " + ex.getMessage(),
-//                    "SQL Error",
-//                    JOptionPane.ERROR_MESSAGE
-//            );
-//        }
-//    }
 }
