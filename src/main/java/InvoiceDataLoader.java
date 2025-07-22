@@ -7,7 +7,7 @@ import java.util.Date;
 import java.util.List;
 
 public class InvoiceDataLoader {
-    final static double debugMins = 122.0;
+    final static double debugMins = 65.0;
 
     public static List<Integer> loadInvoiceData(String company,
                                                 Date fromDate, Date toDate,
@@ -126,13 +126,22 @@ public class InvoiceDataLoader {
                         if (isOffset <= offsetBy) {
                             adjustedMin = adjustedMin - isOffset;
                         }
+
                         double perHour = rs2.getDouble("rate_per_hour");
                         double perDay = rs2.getDouble("rate_per_day");
 
                         // if UnitDay == 1 use perDay, otherwise perHour
                         double qty = (unitDay == 1 ? 1 : mins);
                         double tarif = (unitDay == 1 ? perDay : perHour);
-                        double total = tarif * (adjustedMin / 60);
+                        double lessThan30Adjust = (adjustedMin % 60);
+                        double total = 0;
+                        if (lessThan30Adjust == 0) {
+                            total = tarif * (adjustedMin / 60);
+                        } else {
+                            // if say it is 1 hour 2 mins to 1 hour 29 minutes then apply "hour rate" to 1 hour
+                            // and "less than 30" rate to the remaining minute
+                            total = tarif * ((adjustedMin - lessThan30Adjust) / 60) + lessThan30Rate;
+                        }
                         // until it is 32 minutes lessthan30 rate applies
                         if (mins <= offsetunit + offsetBy) {
                             total = lessThan30Rate;
