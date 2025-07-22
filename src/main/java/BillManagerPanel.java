@@ -26,7 +26,7 @@ public class BillManagerPanel extends JPanel {
 
     // Input fields for every column in the table
     private JTextField serviceField, workedField, cityField;  // unitDayField;
-    private JTextField  billNoField, durationField;
+    private JTextField billNoField, durationField;
 
     // Date/time pickers (spinners)
     private JSpinner startTimeSpinner, endTimeSpinner, dateWorkedSpinner;
@@ -40,7 +40,8 @@ public class BillManagerPanel extends JPanel {
     // Buttons for user actions
     private JButton addBtn, updateBtn, deleteBtn, refreshBtn;
 
-    public static JSpinner fromDateSpinner, toDateSpinner;
+    private JSpinner fromDateSpinner, toDateSpinner;
+    private JComboBox<String> billNoFilterCombo = new JComboBox<>();
 
     // ───────────────────────────────────────────────────────────────
     // 🏗️ Constructor builds the form layout and sets behavior
@@ -67,6 +68,8 @@ public class BillManagerPanel extends JPanel {
         endTimeSpinner = createSpinner("HH:mm");
         durationField = new JTextField();
         dateWorkedSpinner = createSpinner("yyyy-MM-dd");
+        fromDateSpinner = createSpinner("yyyy-MM-dd");
+        toDateSpinner = createSpinner("yyyy-MM-dd");
         paidCheck = new JCheckBox("Paid");
         languageFieldCombo = new JComboBox<>();
         billNoField = new JTextField();
@@ -106,11 +109,21 @@ public class BillManagerPanel extends JPanel {
         deleteBtn = new JButton("Delete");
         refreshBtn = new JButton("Refresh");
 
+        ignoreDateCheckbox = new JCheckBox("Ignore Date");
+
         topBar.add(addBtn);
         topBar.add(updateBtn);
         topBar.add(deleteBtn);
         topBar.add(refreshBtn);
         add(topBar, BorderLayout.SOUTH);
+
+        // Add them into your topBar (or a small filterPanel) alongside your Refresh button
+        topBar.add(new JLabel("Date:"));
+        topBar.add(fromDateSpinner);
+        topBar.add(toDateSpinner);
+        topBar.add(ignoreDateCheckbox);
+        topBar.add(new JLabel("Bill No:"));
+        topBar.add(billNoFilterCombo);
 
         // ── Wire up button behavior ──
         refreshBtn.addActionListener(e -> loadAll());
@@ -125,6 +138,9 @@ public class BillManagerPanel extends JPanel {
             }
         });
 
+        loadBillNos();
+        ignoreDateCheckbox.setSelected(true);
+        billNoFilterCombo.setSelectedIndex(0);
         // Initial data load
         loadAll();
     }
@@ -178,11 +194,24 @@ public class BillManagerPanel extends JPanel {
     // Refreshes the table from the database
     private void refreshTable() {
         model.setRowCount(0);  // clear current table
-        String sql = "SELECT idbill_main, service_rendered, UnitDay, duration_in_minutes, CityServiced, " +
-                "startTime, endTime, duration_in_minutes, date_worked, paid, language, bill_no, client_id FROM bill_main order by date_worked";
+        StringBuilder sql = new StringBuilder("SELECT idbill_main, service_rendered, UnitDay, duration_in_minutes, CityServiced, " +
+                "startTime, endTime, duration_in_minutes, date_worked, paid, language, bill_no, client_id FROM bill_main where 1=1 ");
+        if (!ignoreDateCheckbox.isSelected()) {
+            sql.append(" and date_worked >= '")
+                    .append(new java.sql.Date(((Date) fromDateSpinner.getValue()).getTime()))
+                    .append("' ")
+                    .append(" and date_worked <= '")
+                    .append(new java.sql.Date(((Date) toDateSpinner.getValue()).getTime()))
+                    .append("' ");
+        }
+        String b = billNoFilterCombo.getSelectedItem().toString();
+        if (!b.equals("ALL")) {
+            sql.append(" and bill_no = ").append(billNoFilterCombo.getSelectedItem());
+        }
+        sql.append(" order by date_worked ");
         try (Connection c = MySQLConnector.getConnection();
              Statement st = c.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
+             ResultSet rs = st.executeQuery(sql.toString())) {
             while (rs.next()) {
                 model.addRow(new Object[]{
                         rs.getInt(1),         // ID
@@ -193,7 +222,7 @@ public class BillManagerPanel extends JPanel {
                         rs.getTimestamp(6),   // StartTime
                         rs.getTimestamp(7),   // EndTime
                         rs.getDouble(8),      // Duration
-                        CombineDateTime.DateFormatter("yyyy-MMM-dd HH",rs.getTimestamp(9)),   // DateWorked
+                        CombineDateTime.DateFormatter("yyyy-MMM-dd HH", rs.getTimestamp(9)),   // DateWorked
                         rs.getInt(10) == 1,   // Paid (as boolean)
                         rs.getString(11),     // Language
                         rs.getBigDecimal(12),// Bill No
@@ -287,21 +316,6 @@ public class BillManagerPanel extends JPanel {
             ps.setString(1, serviceField.getText().trim());  // service_rendered
             ps.setInt(2, unitDayField.isSelected() ? 1 : 0); // UnitDay (checkbox, 1 for true, 0 for false)
             ps.setString(3, cityField.getText().trim());     // CityServiced
-
-            // Combine date and time using your custom utility method
-            // This merges the selected date with the time from the spinner
-//            ps.setTimestamp(4, new Timestamp(
-//                    CombineDateTime.mergeDateAndTime(
-//                            (Date) dateWorkedSpinner.getValue(),    // date part
-//                            (Date) startTimeSpinner.getValue()      // time part
-//                    ).getTime()
-//            ));
-//            ps.setTimestamp(5, new Timestamp(
-//                    CombineDateTime.mergeDateAndTime(
-//                            (Date) dateWorkedSpinner.getValue(),    // date part
-//                            (Date) endTimeSpinner.getValue()        // time part
-//                    ).getTime()
-//            ));
 
             Timestamp startTime, endTime;
             startTime = new Timestamp(
@@ -461,4 +475,23 @@ public class BillManagerPanel extends JPanel {
         }
     }
 
+
+    // 3) New helper to populate your Bill-No filter combo
+    private void loadBillNos() {
+        billNoFilterCombo.removeAllItems();
+        billNoFilterCombo.addItem("ALL");  // optional “no-filter” entry
+        String sql = "SELECT DISTINCT bill_no FROM bill_main ORDER BY bill_no";
+        try (Connection c = MySQLConnector.getConnection();
+             Statement st = c.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+            while (rs.next()) {
+                billNoFilterCombo.addItem(rs.getString(1));
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+//            JOptionPane.showMessageDialog(this, "Delete failed: " + ex.getMessage());
+        }
+    }
+
 }
+
