@@ -120,7 +120,7 @@ public class PDFCreator {
             pdfTable.setWidths(new int[]{3, 2, 2, 2});
             pdfTable.addCell("Prestation");
             pdfTable.addCell("Prix par heure"); //(€)");
-            pdfTable.addCell("Quantité (mins)");
+            pdfTable.addCell("Quantité"); // (mins)");
             pdfTable.addCell("Total"); //(€)");
 
             // STEP 7: Populate rows from the Swing table model
@@ -138,7 +138,8 @@ public class PDFCreator {
                 pdfTable.addCell(BillingManagerPanel.model.getValueAt(i, 1).toString().replace(".", ",") + "0 €");
 
                 // 3rd column: quantity (days/hours)
-                pdfTable.addCell(BillingManagerPanel.model.getValueAt(i, 2).toString().replace(".", ",") + "0 €");
+                String mins  = BillingManagerPanel.model.getValueAt(i, 2).toString();
+                pdfTable.addCell(mins.substring(0,mins.indexOf('.')) + " minutes");
 
                 // 4th column: total price for this line
                 String lineTotal = BillingManagerPanel.model.getValueAt(i, 3).toString();
