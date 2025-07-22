@@ -32,13 +32,15 @@ public class BillManagerPanel extends JPanel {
     private JSpinner startTimeSpinner, endTimeSpinner, dateWorkedSpinner;
 
     // Checkbox for 'paid' status and dropdown for clients
-    private JCheckBox paidCheck, unitDayField;
+    private JCheckBox paidCheck, unitDayField, ignoreDateCheckbox;
     private JComboBox<String> clientCombo;
     private JComboBox<String> languageFieldCombo;
     private List<Integer> clientIds = new ArrayList<>(); // holds client IDs that match names
 
     // Buttons for user actions
     private JButton addBtn, updateBtn, deleteBtn, refreshBtn;
+
+    public static JSpinner fromDateSpinner, toDateSpinner;
 
     // ───────────────────────────────────────────────────────────────
     // 🏗️ Constructor builds the form layout and sets behavior
