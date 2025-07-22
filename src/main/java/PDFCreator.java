@@ -21,6 +21,7 @@ import java.util.Locale;
 public class PDFCreator {
     public static final String exportPDFupdate = ConfigLoader.get("db.exportPDFupdate");
     public static final String updateBillNos = "yes";
+
     /**
      * Helper: replaces every instance of replaceChar in sourceText with replaceBy.
      * We’ll use this to turn "\n" into commas (or any other delimiter) before laying out paragraphs.
@@ -44,12 +45,12 @@ public class PDFCreator {
     /**
      * Creates the actual PDF file.
      *
-     * @param parent     the Swing Component to anchor file-chooser dialogs
-     * @param billNo     the invoice number to print in the title
-     * @param address    the client’s address block (may contain "\n")
-     * @param myaddress  our own address block (may contain "\n")
+     * @param parent    the Swing Component to anchor file-chooser dialogs
+     * @param billNo    the invoice number to print in the title
+     * @param address   the client’s address block (may contain "\n")
+     * @param myaddress our own address block (may contain "\n")
      */
-    static void exportPDF(Component parent, String billNo, String address, String myaddress,  Date billedOn, List<Integer> billNos) {
+    static void exportPDF(Component parent, String billNo, String address, String myaddress, Date billedOn, List<Integer> billNos) {
         // STEP 1: Ask the user where to save the PDF
         JFileChooser chooser = new JFileChooser();
         chooser.setDialogTitle("Save Invoice as PDF");
@@ -67,8 +68,8 @@ public class PDFCreator {
 
         // Pull in the rest of our invoice info from InvoiceApp
         String company = (String) BillingManagerPanel.companyComboBox.getSelectedItem();
-        Date fromDate  = ((SpinnerDateModel) BillingManagerPanel.fromDateSpinner.getModel()).getDate();
-        Date toDate    = ((SpinnerDateModel) BillingManagerPanel.toDateSpinner.getModel()).getDate();
+        Date fromDate = ((SpinnerDateModel) BillingManagerPanel.fromDateSpinner.getModel()).getDate();
+        Date toDate = ((SpinnerDateModel) BillingManagerPanel.toDateSpinner.getModel()).getDate();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
         try {
@@ -118,9 +119,9 @@ public class PDFCreator {
             PdfPTable pdfTable = new PdfPTable(4);
             pdfTable.setWidths(new int[]{3, 2, 2, 2});
             pdfTable.addCell("Prestation");
-            pdfTable.addCell("Tarif (€)");
+            pdfTable.addCell("Prix par heure"); //(€)");
             pdfTable.addCell("Quantité (mins)");
-            pdfTable.addCell("Total (€)");
+            pdfTable.addCell("Total"); //(€)");
 
             // STEP 7: Populate rows from the Swing table model
             double subTotal = 0;
@@ -134,14 +135,14 @@ public class PDFCreator {
                 pdfTable.addCell(serviceText);
 
                 // 2nd column: unit price
-                pdfTable.addCell(BillingManagerPanel.model.getValueAt(i, 1).toString());
+                pdfTable.addCell(BillingManagerPanel.model.getValueAt(i, 1).toString().replace(".", ",") + "0 €");
 
                 // 3rd column: quantity (days/hours)
-                pdfTable.addCell(BillingManagerPanel.model.getValueAt(i, 2).toString());
+                pdfTable.addCell(BillingManagerPanel.model.getValueAt(i, 2).toString().replace(".", ",") + "0 €");
 
                 // 4th column: total price for this line
                 String lineTotal = BillingManagerPanel.model.getValueAt(i, 3).toString();
-                pdfTable.addCell(lineTotal);
+                pdfTable.addCell(lineTotal.replace(".", ",") + "0 €");
 
                 // Accumulate for the sub-total
                 subTotal += Double.parseDouble(lineTotal);
@@ -161,7 +162,9 @@ public class PDFCreator {
             labelCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
             pdfTable.addCell(labelCell);
 
-            PdfPCell valueCell = new PdfPCell(new Paragraph(subTotal + " €"));
+//            PdfPCell valueCell = new PdfPCell(new Paragraph(subTotal + "0" + " €").replace(".", ","));
+            String formattedValue = (subTotal + "0" + " €").replace(".", ",");
+            PdfPCell valueCell = new PdfPCell(new Paragraph(formattedValue));
             valueCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
             pdfTable.addCell(valueCell);
 
@@ -196,7 +199,7 @@ public class PDFCreator {
             );
 
 
-            updateBillNosInBills(billNos,billNo);
+            updateBillNosInBills(billNos, billNo);
 
         } catch (Exception ex) {
             // Any exception along the way pops up an error dialog
