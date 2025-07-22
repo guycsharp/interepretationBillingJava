@@ -15,6 +15,7 @@ import java.awt.*;
 import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
@@ -50,7 +51,7 @@ public class PDFCreator {
      * @param address   the client’s address block (may contain "\n")
      * @param myaddress our own address block (may contain "\n")
      */
-    static void exportPDF(Component parent, String billNo, String address, String myaddress, Date billedOn, List<Integer> billNos) {
+    static void exportPDF(Component parent, String billNo, String address, String myaddress, Date billedOn, HashMap<Integer, String> billNos) {
         // STEP 1: Ask the user where to save the PDF
         JFileChooser chooser = new JFileChooser();
         chooser.setDialogTitle("Save Invoice as PDF");
@@ -138,8 +139,8 @@ public class PDFCreator {
                 pdfTable.addCell(BillingManagerPanel.model.getValueAt(i, 1).toString().replace(".", ",") + "0 €");
 
                 // 3rd column: quantity (days/hours)
-                String mins  = BillingManagerPanel.model.getValueAt(i, 2).toString();
-                pdfTable.addCell(mins.substring(0,mins.indexOf('.')) + " minutes");
+                String mins = BillingManagerPanel.model.getValueAt(i, 2).toString();
+                pdfTable.addCell(mins.substring(0, mins.indexOf('.')) + " minutes");
 
                 // 4th column: total price for this line
                 String lineTotal = BillingManagerPanel.model.getValueAt(i, 3).toString();
@@ -213,7 +214,7 @@ public class PDFCreator {
         }
     }
 
-    public static void updateBillNosInBills(List<Integer> billNos, String billNum) {
+    public static void updateBillNosInBills(HashMap<Integer, String> billNos, String billNum) {
         if (updateBillNos.equals(exportPDFupdate)) {
             InvoiceDataLoader.updateBillNumber(billNos, billNum);
         }

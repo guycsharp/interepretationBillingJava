@@ -4,17 +4,18 @@ import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 
 public class InvoiceDataLoader {
     final static double debugMins = 65.0;
 
-    public static List<Integer> loadInvoiceData(String company,
-                                                Date fromDate, Date toDate,
-                                                boolean ignoreDate, boolean ignorePaid,
-                                                DefaultTableModel model) {
+    public static HashMap<Integer, String> loadInvoiceData(String company,
+                                                           Date fromDate, Date toDate,
+                                                           boolean ignoreDate, boolean ignorePaid,
+                                                           DefaultTableModel model) {
         model.setRowCount(0);
-        List<Integer> billIds = new ArrayList<>();
+        HashMap<Integer, String> billIds = new HashMap<>();
         // 1) First we look up the client_id once (still fine to keep this)
         int clientId = -1;
         String findClientSql =
@@ -101,8 +102,6 @@ public class InvoiceDataLoader {
                         int unitDay = rs2.getInt("UnitDay");
                         double mins = rs2.getDouble("duration_in_minutes");
 
-                        billIds.add(rs2.getInt("idbill_main"));
-
                         int offsetBy = rs2.getInt("offsetby");
                         int offsetunit = rs2.getInt("offsetunit");
                         double isOffset = mins % offsetunit;
@@ -146,6 +145,7 @@ public class InvoiceDataLoader {
                         if (mins <= offsetunit + offsetBy) {
                             total = lessThan30Rate;
                         }
+                        billIds.put(rs2.getInt("idbill_main"), total + "");
                         java.sql.Date rawDate = rs2.getDate("date_worked");
                         SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
                         String date = sdf.format(rawDate);
@@ -182,7 +182,7 @@ public class InvoiceDataLoader {
         return billIds;
     }
 
-    public static void updateBillNumber(List<Integer> billNos, String billNum) {
+    public static void updateBillNumber(HashMap<Integer, String> billNos, String billNum) {
         if (billNos == null || billNos.isEmpty()) {
             JOptionPane.showMessageDialog(
                     null,
@@ -193,46 +193,48 @@ public class InvoiceDataLoader {
             return;
         }
 
-        StringBuilder updateSQL = new StringBuilder("UPDATE bill_main SET bill_no = ")
-                .append(billNum)
-                .append(" WHERE idbill_main IN (");
+        int updatedCount = 0;
 
-        for (int i = 0; i < billNos.size(); i++) {
-            updateSQL.append(billNos.get(i));
-            if (i < billNos.size() - 1) updateSQL.append(", ");
-        }
-        updateSQL.append(")");
+        for (Integer k : billNos.keySet()) {
+            StringBuilder updateSQL = new StringBuilder("UPDATE bill_main SET bill_no = ")
+                    .append(billNum)
+                    .append(" total_amt=")
+                    .append(billNos.get(k))
+                    .append(" WHERE idbill_main = ")
+                    .append(k);
 
-        try (Connection conn = MySQLConnector.getConnection();  // ✅ Now includes Connection
-             Statement stmt = conn.createStatement()) {
+            try (Connection conn = MySQLConnector.getConnection();  // ✅ Now includes Connection
+                 Statement stmt = conn.createStatement()) {
 
-            int updatedCount = stmt.executeUpdate(updateSQL.toString());
+                if (stmt.executeUpdate(updateSQL.toString()) == 0) {
+                    JOptionPane.showMessageDialog(
+                            null,
+                            "Database error: No rows updated",
+                            "SQL Error",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+                    return;
+                }
 
-            if (updatedCount == 0) {
+            } catch (SQLException ex) {
+                ex.printStackTrace();
                 JOptionPane.showMessageDialog(
                         null,
-                        "Database error: No rows updated",
+                        "Database error: " + ex.getMessage(),
                         "SQL Error",
                         JOptionPane.ERROR_MESSAGE
                 );
-            } else {
-                JOptionPane.showMessageDialog(
-                        null,
-                        "Updated " + updatedCount + " bill(s)",
-                        "Update Successful",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
+                return;
             }
-
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(
-                    null,
-                    "Database error: " + ex.getMessage(),
-                    "SQL Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
+            updatedCount++;
         }
+
+        JOptionPane.showMessageDialog(
+                null,
+                "Updated " + updatedCount + " bill(s)",
+                "Update Successful",
+                JOptionPane.INFORMATION_MESSAGE
+        );
     }
 
 }

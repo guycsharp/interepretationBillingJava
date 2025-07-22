@@ -1,4 +1,3 @@
-// MySQLConnector.java
 // Provides a simple method to get a JDBC Connection using credentials from ConfigLoader
 import java.sql.Connection;
 import java.sql.DriverManager;
