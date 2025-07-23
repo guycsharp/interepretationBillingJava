@@ -63,7 +63,9 @@ public class PDFCreator {
         Date toDate = ((SpinnerDateModel) BillingManagerPanel.toDateSpinner.getModel()).getDate();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
-        String date1 = CombineDateTime.DateFormatter("yyyy-MM-dd", new Timestamp(fromDate.getTime()));
+        String date1 = new SimpleDateFormat("MMM-yyyy", Locale.FRENCH)
+                .format(new Timestamp(fromDate.getTime()));
+
         JFileChooser chooser = getJFileChooser(date1);
         if (chooser.showSaveDialog(parent) != JFileChooser.APPROVE_OPTION) {
             // User hit Cancel
