@@ -6,7 +6,7 @@ public class BillingLogic {
     /*
 
      */
-    public static double calculateTotalAmount(int offsetBy, int offsetunit, double mins, double lessThan30Rate) {
+    public static double calculateTotalAmount(int offsetBy, int offsetunit, double tarif, double mins, double lessThan30Rate) {
         double isOffset = mins % offsetunit;
         double adjustedMin = mins;
         int count = 0;

@@ -40,117 +40,8 @@ public class BillManagerPanel extends JPanel {
     // Buttons for user actions
     private JButton addBtn, updateBtn, deleteBtn, refreshBtn;
 
-    private JSpinner fromDateSpinner, toDateSpinner;
+    private JSpinner fromDateSpinner, toDateSpinner, paidDateSpinner;
     private JComboBox<String> billNoFilterCombo = new JComboBox<>();
-
-    // ───────────────────────────────────────────────────────────────
-    // 🏗️ Constructor builds the form layout and sets behavior
-//    public BillManagerPanel() {
-//        setLayout(new BorderLayout(5, 5));  // give spacing between regions
-//
-//
-//        // ── Top section: table ──
-//        model = new DefaultTableModel(new String[]{
-//                "ID", "Service", "UnitDay", "City",
-//                "StartTime", "EndTime", "Duration In Mins", "DateWorked",
-//                "Paid", "Lang", "BillNo", "ClientID"
-//        }, 0);
-//        table = new JTable(model);
-//        add(new JScrollPane(table), BorderLayout.NORTH);
-////        JScrollPane scroll = new JScrollPane(table);
-////        JPanel topTablePanel = new JPanel(new BorderLayout());
-////        topTablePanel.add(scroll, BorderLayout.CENTER);
-////        topTablePanel.setPreferredSize(new Dimension(0, getPreferredSize().height / 2));
-////        add(topTablePanel, BorderLayout.NORTH);
-//
-//
-//        // ── Center section: entry form ──
-//        JPanel form = new JPanel(new GridLayout(13, 2, 5, 5));  // 13 rows, 2 columns
-//        serviceField = new JTextField();
-//        unitDayField = new JCheckBox("Per Day"); //new JTextField();
-////        workedField   = new JTextField();
-//        cityField = new JTextField();
-//        startTimeSpinner = createSpinner("HH:mm");
-//        endTimeSpinner = createSpinner("HH:mm");
-//        durationField = new JTextField();
-//        dateWorkedSpinner = createSpinner("yyyy-MM-dd");
-//        fromDateSpinner = createSpinner("yyyy-MM-dd");
-//        toDateSpinner = createSpinner("yyyy-MM-dd");
-//        paidCheck = new JCheckBox("Paid");
-//        languageFieldCombo = new JComboBox<>();
-//        billNoField = new JTextField();
-//        clientCombo = new JComboBox<>();
-//
-//        // Add all form rows
-//        form.add(new JLabel("Service:"));
-//        form.add(serviceField);
-//        form.add(new JLabel("UnitDay (0/1):"));
-//        form.add(unitDayField);
-
-    /// /        form.add(new JLabel("Worked Hours/Days:")); form.add(workedField);
-//        form.add(new JLabel("City Serviced:"));
-//        form.add(cityField);
-//        form.add(new JLabel("Start Time:"));
-//        form.add(startTimeSpinner);
-//        form.add(new JLabel("End Time:"));
-//        form.add(endTimeSpinner);
-//        form.add(new JLabel("Duration (min):"));
-//        form.add(durationField);
-//        form.add(new JLabel("Date Worked:"));
-//        form.add(dateWorkedSpinner);
-//        form.add(new JLabel("Paid:"));
-//        form.add(paidCheck);
-//        form.add(new JLabel("Language:"));
-//        form.add(languageFieldCombo);
-//        form.add(new JLabel("Bill No:"));
-//        form.add(billNoField);
-//        form.add(new JLabel("Client:"));
-//        form.add(clientCombo);
-//
-//        add(form, BorderLayout.CENTER); // Add form to bottom
-//
-//        // ── Top section: action buttons ──
-//        JPanel topBar = new JPanel();
-//        addBtn = new JButton("Add");
-//        updateBtn = new JButton("Update");
-//        deleteBtn = new JButton("Delete");
-//        refreshBtn = new JButton("Refresh");
-//
-//        ignoreDateCheckbox = new JCheckBox("Ignore Date");
-//
-//        topBar.add(addBtn);
-//        topBar.add(updateBtn);
-//        topBar.add(deleteBtn);
-//        topBar.add(refreshBtn);
-//        add(topBar, BorderLayout.SOUTH);
-//
-//        // Add them into your topBar (or a small filterPanel) alongside your Refresh button
-//        topBar.add(new JLabel("Date:"));
-//        topBar.add(fromDateSpinner);
-//        topBar.add(toDateSpinner);
-//        topBar.add(ignoreDateCheckbox);
-//        topBar.add(new JLabel("Bill No:"));
-//        topBar.add(billNoFilterCombo);
-//
-//        // ── Wire up button behavior ──
-//        refreshBtn.addActionListener(e -> loadAll());
-//        addBtn.addActionListener(e -> insertBill());
-//        updateBtn.addActionListener(e -> updateBill());
-//        deleteBtn.addActionListener(e -> deleteBill());
-//
-//        // Table selection: when user clicks a row, fill form
-//        table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
-//            public void valueChanged(ListSelectionEvent e) {
-//                fillForm();
-//            }
-//        });
-//
-//        loadBillNos();
-//        ignoreDateCheckbox.setSelected(true);
-//        billNoFilterCombo.setSelectedIndex(0);
-//        // Initial data load
-//        loadAll();
-//    }
 
 // 🏗️ Constructor builds the form layout and sets behavior
     public BillManagerPanel() {
@@ -174,13 +65,15 @@ public class BillManagerPanel extends JPanel {
         dateWorkedSpinner = createSpinner("yyyy-MM-dd");
         fromDateSpinner = createSpinner("yyyy-MM-dd");
         toDateSpinner = createSpinner("yyyy-MM-dd");
+        paidDateSpinner = createSpinner("yyyy-MM-dd");
         paidCheck = new JCheckBox("Paid");
         languageFieldCombo = new JComboBox<>();
         billNoField = new JTextField();
         clientCombo = new JComboBox<>();
 
+//        JPanel paidForm = new JPanel((new GridLayout(0,3,5,5)));
         // ── Build Entry Form ──
-        JPanel form = new JPanel(new GridLayout(11, 2, 5, 5));
+        JPanel form = new JPanel(new GridLayout(0, 2, 5, 5));
         form.add(new JLabel("Service:"));
         form.add(serviceField);
         form.add(new JLabel("UnitDay (0/1):"));
@@ -197,6 +90,9 @@ public class BillManagerPanel extends JPanel {
         form.add(dateWorkedSpinner);
         form.add(new JLabel("Paid:"));
         form.add(paidCheck);
+        form.add(new JLabel("Payment date:"));
+        form.add(paidDateSpinner);
+//        form.add(paidForm);
         form.add(new JLabel("Language:"));
         form.add(languageFieldCombo);
         form.add(new JLabel("Bill No:"));
