@@ -43,7 +43,7 @@ public class BillManagerPanel extends JPanel {
     private JSpinner fromDateSpinner, toDateSpinner, paidDateSpinner;
     private JComboBox<String> billNoFilterCombo = new JComboBox<>();
 
-// 🏗️ Constructor builds the form layout and sets behavior
+    // 🏗️ Constructor builds the form layout and sets behavior
     public BillManagerPanel() {
         setLayout(new BorderLayout(5, 5));  // spacing between regions
 
@@ -51,7 +51,7 @@ public class BillManagerPanel extends JPanel {
         model = new DefaultTableModel(new String[]{
                 "ID", "Service", "UnitDay", "City",
                 "StartTime", "EndTime", "Duration In Mins", "DateWorked",
-                "Paid", "Lang", "BillNo", "ClientID"
+                "Paid", "Lang", "BillNo", "ClientID", "Amount"
         }, 0);
         table = new JTable(model);
 
@@ -204,7 +204,7 @@ public class BillManagerPanel extends JPanel {
     private void refreshTable() {
         model.setRowCount(0);  // clear current table
         StringBuilder sql = new StringBuilder("SELECT idbill_main, service_rendered, UnitDay, duration_in_minutes, CityServiced, " +
-                "startTime, endTime, duration_in_minutes, date_worked, paid, language, bill_no, client_id FROM bill_main where 1=1 ");
+                "startTime, endTime, duration_in_minutes, date_worked, paid, language, bill_no, client_id, total_amt FROM bill_main where 1=1 ");
         if (!ignoreDateCheckbox.isSelected()) {
             sql.append(" and date_worked >= '")
                     .append(new java.sql.Date(((Date) fromDateSpinner.getValue()).getTime()))
@@ -235,7 +235,8 @@ public class BillManagerPanel extends JPanel {
                         rs.getInt(10) == 1,   // Paid (as boolean)
                         rs.getString(11),     // Language
                         rs.getBigDecimal(12),// Bill No
-                        rs.getInt(13)         // Client ID
+                        rs.getInt(13),       // Client ID
+                        rs.getBigDecimal(14)         // Total Amount
                 });
             }
         } catch (SQLException ex) {
@@ -311,15 +312,21 @@ public class BillManagerPanel extends JPanel {
 
         // Step 4: Write the SQL update query
         // Note: It must exactly match the real table columns — no missing or extra columns!
-        String sql = "UPDATE bill_main SET " +
-                "service_rendered=?, UnitDay=?, CityServiced=?, " +
-                "startTime=?, endTime=?, duration_in_minutes=?, date_worked=?, " +
-                "paid=?, language=?, bill_no=?, client_id=?, updated_date=NOW() " +
-                "WHERE idbill_main=?";
+        StringBuilder sql = new StringBuilder("UPDATE bill_main SET service_rendered=?, UnitDay=?, CityServiced=?, startTime=?, " +
+                "endTime=?, duration_in_minutes=?, date_worked=?, paid=?, language=?, bill_no=?," +
+                " client_id=?, updated_date=NOW() ");
+
+        if (paidCheck.isSelected()) {
+            java.sql.Date sqldate = new java.sql.Date(
+                    ((Date) dateWorkedSpinner.getValue()).getTime()
+            );
+            sql.append(" ,  paid_date= '").append(sqldate).append("'");
+        }
+        sql.append(" WHERE idbill_main=?");
 
         // Step 5: Use JDBC to send the data to MySQL
         try (Connection c = MySQLConnector.getConnection();
-             PreparedStatement ps = c.prepareStatement(sql)) {
+             PreparedStatement ps = c.prepareStatement(sql.toString())) {
 
             // Step 6: Fill in each ? in the SQL query with values from the form
             ps.setString(1, serviceField.getText().trim());  // service_rendered
