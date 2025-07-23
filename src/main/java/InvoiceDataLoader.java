@@ -1,20 +1,23 @@
+import Utils.BillingLogic;
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 
 public class InvoiceDataLoader {
     final static double debugMins = 65.0;
 
-    public static List<Integer> loadInvoiceData(String company,
-                                                Date fromDate, Date toDate,
-                                                boolean ignoreDate, boolean ignorePaid,
-                                                DefaultTableModel model) {
+    public static HashMap<Integer, String> loadInvoiceData(String company,
+                                                           Date fromDate, Date toDate,
+                                                           boolean ignoreDate, boolean ignorePaid,
+                                                           DefaultTableModel model) {
         model.setRowCount(0);
-        List<Integer> billIds = new ArrayList<>();
+        HashMap<Integer, String> billIds = new HashMap<>();
         // 1) First we look up the client_id once (still fine to keep this)
         int clientId = -1;
         String findClientSql =
@@ -101,31 +104,29 @@ public class InvoiceDataLoader {
                         int unitDay = rs2.getInt("UnitDay");
                         double mins = rs2.getDouble("duration_in_minutes");
 
-                        billIds.add(rs2.getInt("idbill_main"));
-
                         int offsetBy = rs2.getInt("offsetby");
                         int offsetunit = rs2.getInt("offsetunit");
-                        double isOffset = mins % offsetunit;
-                        double adjustedMin = mins;
-                        int count = 0;
+//                        double isOffset = mins % offsetunit;
+//                        double adjustedMin = mins;
+//                        int count = 0;
                         if (mins == debugMins) {
                             System.out.println("debug here");
                         }
-                        while (mins > offsetunit && isOffset > offsetBy) {
-                            adjustedMin = mins - isOffset + offsetunit;
-                            isOffset = adjustedMin % offsetunit;
-                            count++;
-                            if (count > 1) {
-                                JOptionPane.showMessageDialog(
-                                        null,
-                                        "Minute adjustment error has occurred",
-                                        "Adjust Minute",
-                                        JOptionPane.ERROR_MESSAGE);
-                            }
-                        }
-                        if (isOffset <= offsetBy) {
-                            adjustedMin = adjustedMin - isOffset;
-                        }
+//                        while (mins > offsetunit && isOffset > offsetBy) {
+//                            adjustedMin = mins - isOffset + offsetunit;
+//                            isOffset = adjustedMin % offsetunit;
+//                            count++;
+//                            if (count > 1) {
+//                                JOptionPane.showMessageDialog(
+//                                        null,
+//                                        "Minute adjustment error has occurred",
+//                                        "Adjust Minute",
+//                                        JOptionPane.ERROR_MESSAGE);
+//                            }
+//                        }
+//                        if (isOffset <= offsetBy) {
+//                            adjustedMin = adjustedMin - isOffset;
+//                        }
 
                         double perHour = rs2.getDouble("rate_per_hour");
                         double perDay = rs2.getDouble("rate_per_day");
@@ -133,19 +134,25 @@ public class InvoiceDataLoader {
                         // if UnitDay == 1 use perDay, otherwise perHour
                         double qty = (unitDay == 1 ? 1 : mins);
                         double tarif = (unitDay == 1 ? perDay : perHour);
-                        double lessThan30Adjust = (adjustedMin % 60);
+//                        double lessThan30Adjust = (adjustedMin % 60);
                         double total = 0;
-                        if (lessThan30Adjust == 0) {
-                            total = tarif * (adjustedMin / 60);
+                        if(unitDay == 1){
+                            total = tarif;
                         } else {
-                            // if say it is 1 hour 2 mins to 1 hour 29 minutes then apply "hour rate" to 1 hour
-                            // and "less than 30" rate to the remaining minute
-                            total = tarif * ((adjustedMin - lessThan30Adjust) / 60) + lessThan30Rate;
+                            total = BillingLogic.calculateTotalAmount(offsetBy, offsetunit, tarif, mins, lessThan30Rate);
                         }
-                        // until it is 32 minutes lessthan30 rate applies
-                        if (mins <= offsetunit + offsetBy) {
-                            total = lessThan30Rate;
-                        }
+//                        if (lessThan30Adjust == 0) {
+//                            total = tarif * (adjustedMin / 60);
+//                        } else {
+//                            // if say it is 1 hour 2 mins to 1 hour 29 minutes then apply "hour rate" to 1 hour
+//                            // and "less than 30" rate to the remaining minute
+//                            total = tarif * ((adjustedMin - lessThan30Adjust) / 60) + lessThan30Rate;
+//                        }
+//                        // until it is 32 minutes lessthan30 rate applies
+//                        if (mins <= offsetunit + offsetBy) {
+//                            total = lessThan30Rate;
+//                        }
+                        billIds.put(rs2.getInt("idbill_main"), total + "");
                         java.sql.Date rawDate = rs2.getDate("date_worked");
                         SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
                         String date = sdf.format(rawDate);
@@ -182,7 +189,7 @@ public class InvoiceDataLoader {
         return billIds;
     }
 
-    public static void updateBillNumber(List<Integer> billNos, String billNum) {
+    public static void updateBillNumber(HashMap<Integer, String> billNos, String billNum) {
         if (billNos == null || billNos.isEmpty()) {
             JOptionPane.showMessageDialog(
                     null,
@@ -193,46 +200,48 @@ public class InvoiceDataLoader {
             return;
         }
 
-        StringBuilder updateSQL = new StringBuilder("UPDATE bill_main SET bill_no = ")
-                .append(billNum)
-                .append(" WHERE idbill_main IN (");
+        int updatedCount = 0;
 
-        for (int i = 0; i < billNos.size(); i++) {
-            updateSQL.append(billNos.get(i));
-            if (i < billNos.size() - 1) updateSQL.append(", ");
-        }
-        updateSQL.append(")");
+        for (Integer k : billNos.keySet()) {
+            StringBuilder updateSQL = new StringBuilder("UPDATE bill_main SET bill_no = ")
+                    .append(billNum)
+                    .append(" , total_amt=")
+                    .append(billNos.get(k))
+                    .append(" WHERE idbill_main = ")
+                    .append(k);
 
-        try (Connection conn = MySQLConnector.getConnection();  // ✅ Now includes Connection
-             Statement stmt = conn.createStatement()) {
+            try (Connection conn = MySQLConnector.getConnection();  // ✅ Now includes Connection
+                 Statement stmt = conn.createStatement()) {
 
-            int updatedCount = stmt.executeUpdate(updateSQL.toString());
+                if (stmt.executeUpdate(updateSQL.toString()) == 0) {
+                    JOptionPane.showMessageDialog(
+                            null,
+                            "Database error: No rows updated",
+                            "SQL Error",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+                    return;
+                }
 
-            if (updatedCount == 0) {
+            } catch (SQLException ex) {
+                ex.printStackTrace();
                 JOptionPane.showMessageDialog(
                         null,
-                        "Database error: No rows updated",
+                        "Database error: " + ex.getMessage(),
                         "SQL Error",
                         JOptionPane.ERROR_MESSAGE
                 );
-            } else {
-                JOptionPane.showMessageDialog(
-                        null,
-                        "Updated " + updatedCount + " bill(s)",
-                        "Update Successful",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
+                return;
             }
-
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(
-                    null,
-                    "Database error: " + ex.getMessage(),
-                    "SQL Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
+            updatedCount++;
         }
+
+        JOptionPane.showMessageDialog(
+                null,
+                "Updated " + updatedCount + " bill(s)",
+                "Update Successful",
+                JOptionPane.INFORMATION_MESSAGE
+        );
     }
 
 }

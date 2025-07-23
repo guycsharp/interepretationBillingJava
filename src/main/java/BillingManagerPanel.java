@@ -24,7 +24,7 @@ public class BillingManagerPanel {
 //    }
 
     // public static String billNo = System.currentTimeMillis() + "";
-    public static List<Integer> billIds;
+    public static HashMap<Integer, String> billIds;
 
 
     private static void createAndShowGUI() {
@@ -124,7 +124,7 @@ public class BillingManagerPanel {
 
         // 🔄 Load rows from database
         loadButton.addActionListener(e -> {
-           billIds = InvoiceDataLoader.loadInvoiceData(
+            billIds = InvoiceDataLoader.loadInvoiceData(
                     (String) companyComboBox.getSelectedItem(),
                     ((SpinnerDateModel) fromDateSpinner.getModel()).getDate(),
                     ((SpinnerDateModel) toDateSpinner.getModel()).getDate(),
