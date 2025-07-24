@@ -91,8 +91,8 @@ public class ClientManagerPanel extends JPanel {
 
     private void createClient() {
         String sql = "INSERT INTO client_main " +
-                "(client_name, client_address, client_rate, client_rate_per_day, phone_number) " +
-                "VALUES (?,?,?,?,?)";
+                "(client_name, client_address, client_rate, client_rate_per_day, phone_number, language, insert_date) " +
+                "VALUES (?,?,?,?,?,'na',?)";
         try (Connection c = MySQLConnector.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, nameField.getText());
@@ -100,6 +100,7 @@ public class ClientManagerPanel extends JPanel {
             ps.setInt   (3, Integer.parseInt(rateField.getText()));
             ps.setInt   (4, Integer.parseInt(ratePerDayField.getText()));
             ps.setString(5, phoneField.getText());
+            ps.setTimestamp(6, new java.sql.Timestamp(System.currentTimeMillis()));
             ps.executeUpdate();
             refreshTable();
         } catch (Exception ex) {
@@ -113,7 +114,7 @@ public class ClientManagerPanel extends JPanel {
         int id = (int) model.getValueAt(row, 0);
 
         String sql = "UPDATE client_main SET client_name=?, client_address=?, " +
-                "client_rate=?, client_rate_per_day=?, phone_number=? WHERE idclient_main=?";
+                "client_rate=?, client_rate_per_day=?, phone_number=?, update_date WHERE idclient_main=?";
         try (Connection c = MySQLConnector.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, nameField.getText());
@@ -121,7 +122,8 @@ public class ClientManagerPanel extends JPanel {
             ps.setInt   (3, Integer.parseInt(rateField.getText()));
             ps.setInt   (4, Integer.parseInt(ratePerDayField.getText()));
             ps.setString(5, phoneField.getText());
-            ps.setInt   (6, id);
+            ps.setTimestamp(6, new java.sql.Timestamp(System.currentTimeMillis()));
+            ps.setInt   (7, id);
             ps.executeUpdate();
             refreshTable();
         } catch (Exception ex) {
