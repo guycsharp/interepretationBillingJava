@@ -114,7 +114,7 @@ public class ClientManagerPanel extends JPanel {
         int id = (int) model.getValueAt(row, 0);
 
         String sql = "UPDATE client_main SET client_name=?, client_address=?, " +
-                "client_rate=?, client_rate_per_day=?, phone_number=?, update_date WHERE idclient_main=?";
+                "client_rate=?, client_rate_per_day=?, phone_number=?, update_date=? WHERE idclient_main=?";
         try (Connection c = MySQLConnector.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, nameField.getText());
