@@ -66,7 +66,7 @@ public class PDFCreator {
         String date1 = new SimpleDateFormat("MMMM-yyyy", Locale.FRENCH)
                 .format(new Timestamp(fromDate.getTime()));
 
-        JFileChooser chooser = getJFileChooser(date1);
+        JFileChooser chooser = getJFileChooser(date1, company);
         if (chooser.showSaveDialog(parent) != JFileChooser.APPROVE_OPTION) {
             // User hit Cancel
             return;
@@ -219,8 +219,8 @@ public class PDFCreator {
         }
     }
 
-    private static JFileChooser getJFileChooser(String date1) {
-        String defaultName = "FACTURE " + date1.toUpperCase() + ".pdf";
+    private static JFileChooser getJFileChooser(String date1, String company) {
+        String defaultName = company + " FACTURE " + date1.toUpperCase() + ".pdf";
 
         // Point the chooser to the user’s Documents folder
         File documentsDir = FileSystemView.getFileSystemView().getDefaultDirectory();
