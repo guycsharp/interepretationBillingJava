@@ -90,12 +90,6 @@ public class InvoiceDataLoader {
                     psBill.setDate(idx++, new java.sql.Date(toDate.getTime()));
                 }
 
-//                JOptionPane.showMessageDialog(
-//                        null,
-//                         psBill.toString(),
-//                        "SQL Statement",
-//                        JOptionPane.INFORMATION_MESSAGE);
-
                 try (ResultSet rs2 = psBill.executeQuery()) {
                     boolean any = false;
                     while (rs2.next()) {
@@ -106,27 +100,10 @@ public class InvoiceDataLoader {
 
                         int offsetBy = rs2.getInt("offsetby");
                         int offsetunit = rs2.getInt("offsetunit");
-//                        double isOffset = mins % offsetunit;
-//                        double adjustedMin = mins;
-//                        int count = 0;
+
                         if (mins == debugMins) {
                             System.out.println("debug here");
                         }
-//                        while (mins > offsetunit && isOffset > offsetBy) {
-//                            adjustedMin = mins - isOffset + offsetunit;
-//                            isOffset = adjustedMin % offsetunit;
-//                            count++;
-//                            if (count > 1) {
-//                                JOptionPane.showMessageDialog(
-//                                        null,
-//                                        "Minute adjustment error has occurred",
-//                                        "Adjust Minute",
-//                                        JOptionPane.ERROR_MESSAGE);
-//                            }
-//                        }
-//                        if (isOffset <= offsetBy) {
-//                            adjustedMin = adjustedMin - isOffset;
-//                        }
 
                         double perHour = rs2.getDouble("rate_per_hour");
                         double perDay = rs2.getDouble("rate_per_day");
@@ -134,29 +111,19 @@ public class InvoiceDataLoader {
                         // if UnitDay == 1 use perDay, otherwise perHour
                         double qty = (unitDay == 1 ? 1 : mins);
                         double tarif = (unitDay == 1 ? perDay : perHour);
-//                        double lessThan30Adjust = (adjustedMin % 60);
+
                         double total = 0;
                         if(unitDay == 1){
                             total = tarif;
                         } else {
                             total = BillingLogic.calculateTotalAmount(offsetBy, offsetunit, tarif, mins, lessThan30Rate);
                         }
-//                        if (lessThan30Adjust == 0) {
-//                            total = tarif * (adjustedMin / 60);
-//                        } else {
-//                            // if say it is 1 hour 2 mins to 1 hour 29 minutes then apply "hour rate" to 1 hour
-//                            // and "less than 30" rate to the remaining minute
-//                            total = tarif * ((adjustedMin - lessThan30Adjust) / 60) + lessThan30Rate;
-//                        }
-//                        // until it is 32 minutes lessthan30 rate applies
-//                        if (mins <= offsetunit + offsetBy) {
-//                            total = lessThan30Rate;
-//                        }
+
                         billIds.put(rs2.getInt("idbill_main"), total + "");
                         java.sql.Date rawDate = rs2.getDate("date_worked");
                         SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
                         String date = sdf.format(rawDate);
-//                        String date   = rs2.getDate("date_worked");
+
                         String lang = rs2.getString("language");
 
                         model.addRow(new Object[]{
