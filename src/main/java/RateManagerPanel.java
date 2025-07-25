@@ -191,13 +191,13 @@ public class RateManagerPanel extends JPanel {
         if (row < 0) return;
         int clientId = (int) model.getValueAt(row, 0);
         String lang = model.getValueAt(row, 2).toString();
-
+        String rateApplyDate = model.getValueAt(row, 10).toString();
         String sql =
                 "UPDATE rate_main SET " +
                         " rate_per_hour=?, rate_per_day=?, offsetBy=?, weekend=?, offsetUnit=?," +
                         " rate_apply_date_from=?, " +
                         " update_date=NOW() " +
-                        " WHERE client_id=? AND language=?";
+                        " WHERE client_id=? AND language=? AND rate_apply_date_from='" + rateApplyDate + "'";
         try (Connection c = MySQLConnector.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
 
