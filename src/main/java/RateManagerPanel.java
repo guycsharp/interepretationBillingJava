@@ -165,7 +165,7 @@ public class RateManagerPanel extends JPanel {
     private void insertRate() {
         String sql =
                 "INSERT INTO rate_main " +
-                        "(client_id, language, rate_per_hour, rate_per_day, offsetBy, weekend, offsetUnit, insert_date, rate_apply_date_from) " +
+                        "(client_id, language, rate_per_hour, rate_per_day, offsetBy, weekend, offsetUnit, rate_apply_date_from, insert_date) " +
                         "VALUES (?,?,?,?,?,?,?,?,NOW())";
         try (Connection c = MySQLConnector.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {

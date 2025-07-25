@@ -67,8 +67,9 @@ public class CombineDateTime {
 
     }
 
-    public static String FranceDateFormat(java.sql.Date rawDate){
-        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
+    public static String DateFormatter(java.sql.Date rawDate, String pattern){
+//        "dd-MM-yyyy"
+        SimpleDateFormat sdf = new SimpleDateFormat(pattern);
         return sdf.format(rawDate);
     }
 
