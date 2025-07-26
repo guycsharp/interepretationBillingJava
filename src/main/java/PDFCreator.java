@@ -121,11 +121,16 @@ public class PDFCreator {
 //            doc.add(addParagraph(period, Element.ALIGN_CENTER));
 //            doc.add(new Paragraph(" "));
 
+            String prix = "Prix par heure" ;
+            if(BillingManagerPanel.exportDayBill.isSelected()) {
+                prix = "Forfait Journée\n" + BillingManagerPanel.cityWorkedForField.getText();
+            }
+
             // STEP 6: Build the invoice table (4 columns)
             PdfPTable pdfTable = new PdfPTable(4);
             pdfTable.setWidths(new int[]{3, 2, 2, 2});
             pdfTable.addCell("Prestation");
-            pdfTable.addCell("Prix par heure"); //(€)");
+            pdfTable.addCell(prix); //(€)");
             pdfTable.addCell("Quantité"); // (mins)");
             pdfTable.addCell("Total"); //(€)");
 

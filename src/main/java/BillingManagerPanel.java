@@ -10,14 +10,15 @@ public class BillingManagerPanel {
     // Public components accessed by PDFCreator
     public static JTable table;
     public static DefaultTableModel model;
-    public static JTextField prestationField, tarifField, qtyField;
+    public static JTextField prestationField, tarifField, qtyField, cityWorkedForField;
     public static JComboBox<String> companyComboBox;
     public static JSpinner fromDateSpinner, toDateSpinner, billedOnSpinner;
     public static String clientAdd, languageInterpret, date_worked;
-    private static JCheckBox ignoreDateCheckbox;
-    private static JCheckBox ignorePaidCheckbox;
-    private static final String myaddress = ConfigLoader.get("db.address");
-    private static final int width = 900, height = 600;
+    public static JCheckBox ignoreDateCheckbox;
+    public static JCheckBox ignorePaidCheckbox;
+    public static final String myaddress = ConfigLoader.get("db.address");
+    public static final int width = 900, height = 600;
+    public static JCheckBox exportDayBill = new JCheckBox("Per Day Billing");;
 
 //    public static void main(String[] args) {
 //        SwingUtilities.invokeLater(InvoiceApp::createAndShowGUI);
@@ -83,6 +84,7 @@ public class BillingManagerPanel {
         prestationField = new JTextField();
         tarifField = new JTextField();
         qtyField = new JTextField();
+        cityWorkedForField = new JTextField();
 
         JPanel inputPanel = new JPanel(new GridLayout(1, 6, 10, 5));
         inputPanel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
@@ -97,7 +99,10 @@ public class BillingManagerPanel {
         JButton exportButton = new JButton("Export");
         inputPanel.add(addButton);
         inputPanel.add(exportButton);
-        inputPanel.add(new JLabel()); // filler
+        inputPanel.add(exportDayBill); // filler
+
+        inputPanel.add(new JLabel("City Worked For:"));
+        inputPanel.add(cityWorkedForField);
 
         mainPanel.add(inputPanel, BorderLayout.SOUTH);
 
