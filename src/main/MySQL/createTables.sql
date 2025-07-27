@@ -68,7 +68,9 @@ CREATE TABLE `rate_main` (
   `insert_date` datetime DEFAULT NULL,
   `update_date` datetime DEFAULT NULL,
   `offsetUnit` int DEFAULT NULL,
-  PRIMARY KEY (`client_id`,`language`)
+  `rate_apply_date_from` date NOT NULL DEFAULT '2000-01-01',
+  PRIMARY KEY (`client_id`,`language`,`rate_apply_date_from`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 
 
