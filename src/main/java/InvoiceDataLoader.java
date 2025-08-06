@@ -196,6 +196,14 @@ public class InvoiceDataLoader {
             try (Connection conn = MySQLConnector.getConnection();  // ✅ Now includes Connection
                  Statement stmt = conn.createStatement()) {
 
+
+                JOptionPane.showMessageDialog(
+                        null,
+                        "Database error: " + updateSQL.toString(),
+                        "SQL Statement",
+                        JOptionPane.INFORMATION_MESSAGE
+                );
+
                 if (stmt.executeUpdate(updateSQL.toString()) == 0) {
                     JOptionPane.showMessageDialog(
                             null,
