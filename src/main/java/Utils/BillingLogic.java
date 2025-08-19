@@ -98,6 +98,14 @@ public class BillingLogic {
                 total = (tarif * ((adjustedMin - lessThan30Adjust) / 60)) + (tarif / 2);
             }
 
+//            Check the later threshold first so earlier ones aren’t reconsidered:
+//
+//            if (workedDate.after(july2026) || workedDate.equals(july2026)) {
+//                // rate B
+//            } else if (workedDate.after(july2025) || workedDate.equals(july2025)) {
+//                // rate A
+//            }
+
         }
 
         // until minutes are less than (offsetunit + offsetBy) minutes, lessthan30 rate applies
