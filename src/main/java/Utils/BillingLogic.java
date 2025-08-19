@@ -64,8 +64,6 @@ public class BillingLogic {
         double adjustedMin = mins;
         int count = 0;
 
-        java.sql.Date rateLogicJuly2025 =
-
         while (mins > offsetunit && isOffset > offsetBy) {
             adjustedMin = mins - isOffset + offsetunit;
             isOffset = adjustedMin % offsetunit;
