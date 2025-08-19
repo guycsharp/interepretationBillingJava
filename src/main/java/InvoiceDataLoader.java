@@ -135,7 +135,8 @@ public class InvoiceDataLoader {
                         if(unitDay == 1){
                             total = tarif;
                         } else {
-                            total = BillingLogic.calculateTotalAmount(offsetBy, offsetunit, tarif, mins, lessThan30Rate);
+                            total = BillingLogic.calculateTotalAmount(offsetBy, offsetunit, tarif,
+                                    mins, lessThan30Rate, company, rawDate);
                         }
 
                         billIds.put(rs2.getInt("idbill_main"), total + "");
@@ -197,12 +198,12 @@ public class InvoiceDataLoader {
                  Statement stmt = conn.createStatement()) {
 
 
-                JOptionPane.showMessageDialog(
-                        null,
-                        "Database error: " + updateSQL.toString(),
-                        "SQL Statement",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
+//                JOptionPane.showMessageDialog(
+//                        null,
+//                        "Database error: " + updateSQL.toString(),
+//                        "SQL Statement",
+//                        JOptionPane.INFORMATION_MESSAGE
+//                );
 
                 if (stmt.executeUpdate(updateSQL.toString()) == 0) {
                     JOptionPane.showMessageDialog(
