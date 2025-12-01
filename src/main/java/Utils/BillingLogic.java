@@ -81,8 +81,8 @@ public class BillingLogic {
             adjustedMin = adjustedMin - isOffset;
         }
 
-        String isoJuly2025 = "2025-07-01"; // July 2025
-        java.sql.Date july2025 = java.sql.Date.valueOf(isoJuly2025);
+        String isoAug2025 = "2025-08-01"; // August 2025
+        java.sql.Date aug2025 = java.sql.Date.valueOf(isoAug2025);
 
         double lessThan30Adjust = (adjustedMin % 60);
         double total = 0;
@@ -93,10 +93,10 @@ public class BillingLogic {
             // and "less than 30" rate to the remaining minute
             total = (tarif * ((adjustedMin - lessThan30Adjust) / 60)) + lessThan30Rate;
 
-            // new tarif decision for P T which applies to month of JULY 2025 and beyond
-            if (workedDate.after(july2025) || workedDate.equals(july2025)) {
-                total = (tarif * ((adjustedMin - lessThan30Adjust) / 60)) + (tarif / 2);
-            }
+            // new tarif decision for P T which applies to month of August 2025 and beyond
+//            if (workedDate.after(aug2025) || workedDate.equals(aug2025)) {
+//                total = (tarif * ((adjustedMin - lessThan30Adjust) / 60)) + (tarif / 2);
+//            }
 
 //            Check the later threshold first so earlier ones aren’t reconsidered:
 //
@@ -113,9 +113,9 @@ public class BillingLogic {
             total = lessThan30Rate;
 
             // new tarif decision for P T which applies to month of JULY 2025 and beyond
-            if (workedDate.after(july2025) || workedDate.equals(july2025)) {
-                total = (tarif / 2);
-            }
+//            if (workedDate.after(aug2025) || workedDate.equals(aug2025)) {
+//                total = (tarif / 2);
+//            }
         }
         return total;
     }
