@@ -145,10 +145,8 @@ public class BillManagerPanel extends JPanel {
 
         add(split, BorderLayout.CENTER);
 
-        // ── Populate filter combos & set defaults ──
-        loadBillNos();
         ignoreDateCheckbox.setSelected(true);
-        billNoFilterCombo.setSelectedIndex(0);
+
         // ── Initial data load ──
         loadAll();
     }
@@ -163,6 +161,10 @@ public class BillManagerPanel extends JPanel {
 
     // Loads both client names and table data
     private void loadAll() {
+        // ── Populate filter combos & set defaults ──
+        loadBillNos();
+        billNoFilterCombo.setSelectedIndex(0);
+
         loadClients();    // load combo box
         loadLanguages();
         refreshTable();   // load bill_main table
@@ -205,7 +207,8 @@ public class BillManagerPanel extends JPanel {
         model.setRowCount(0);  // clear current table
         StringBuilder sql = new StringBuilder("SELECT idbill_main, service_rendered, UnitDay, duration_in_minutes, CityServiced, " +
                 "startTime, endTime, duration_in_minutes, date_worked, paid, language, bill_no, client_id, total_amt FROM bill_main where 1=1 ");
-        if (!ignoreDateCheckbox.isSelected()) {
+        boolean ignoreDate =  ignoreDateCheckbox.isSelected();
+        if (!ignoreDate) {
             sql.append(" and date_worked >= '")
                     .append(new java.sql.Date(((Date) fromDateSpinner.getValue()).getTime()))
                     .append("' ")

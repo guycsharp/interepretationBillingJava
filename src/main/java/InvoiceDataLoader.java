@@ -17,6 +17,7 @@ public class InvoiceDataLoader {
                                                            Date fromDate, Date toDate,
                                                            boolean ignoreDate, boolean ignorePaid,
                                                            DefaultTableModel model) {
+        int mintuesInAnHour = 60;
         model.setRowCount(0);
         HashMap<Integer, String> billIds = new HashMap<>();
         // 1) First we look up the client_id once (still fine to keep this)
@@ -123,19 +124,22 @@ public class InvoiceDataLoader {
                         int offsetunit = rs2.getInt("offsetunit");
 
 
-
+                        double workHourPerDay = 6;
                         double perHour = rs2.getDouble("rate_per_hour");
-                        double perDay = rs2.getDouble("rate_per_day");
+                        double perDay = rs2.getDouble("rate_per_day") / workHourPerDay;
+
 
                         // if UnitDay == 1 use perDay, otherwise perHour
-                        double qty = (unitDay == 1 ? 1 : mins);
-                        double tarif = (unitDay == 1 ? perDay : perHour);
+                        double qty = (unitDay == 1 ? 1 * workHourPerDay * mintuesInAnHour : mins);
+                        double tarif = (unitDay == 1 ? (perDay) : perHour);
 
                         double total = 0;
                         if(unitDay == 1){
-                            total = tarif;
+                            total =  BillingLogic.calculateTotalAmount(offsetBy, offsetunit, tarif,
+                                    qty, lessThan30Rate, company, rawDate);;
                         } else {
-                            total = BillingLogic.calculateTotalAmount(offsetBy, offsetunit, tarif, mins, lessThan30Rate);
+                            total = BillingLogic.calculateTotalAmount(offsetBy, offsetunit, tarif,
+                                    mins, lessThan30Rate, company, rawDate);
                         }
 
                         billIds.put(rs2.getInt("idbill_main"), total + "");
@@ -197,12 +201,12 @@ public class InvoiceDataLoader {
                  Statement stmt = conn.createStatement()) {
 
 
-                JOptionPane.showMessageDialog(
-                        null,
-                        "Database error: " + updateSQL.toString(),
-                        "SQL Statement",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
+//                JOptionPane.showMessageDialog(
+//                        null,
+//                        "Database error: " + updateSQL.toString(),
+//                        "SQL Statement",
+//                        JOptionPane.INFORMATION_MESSAGE
+//                );
 
                 if (stmt.executeUpdate(updateSQL.toString()) == 0) {
                     JOptionPane.showMessageDialog(
