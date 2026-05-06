@@ -149,6 +149,24 @@ public class BillManagerPanel extends JPanel {
 
         // ── Initial data load ──
         loadAll();
+
+        clientCombo.addActionListener(e -> {
+
+            // Only refresh when a valid client is selected
+            if (clientCombo.getSelectedIndex() >= 0) {
+                refreshTable(); // or refreshTable() if you prefer synchronous
+            }
+        });
+
+        billNoFilterCombo.addActionListener(e -> {
+
+            Object sel = billNoFilterCombo.getSelectedItem();
+            if (sel != null) {
+                refreshTable();   // or refreshTable() if you use synchronous version
+            }
+        });
+
+
     }
 
 
@@ -206,7 +224,7 @@ public class BillManagerPanel extends JPanel {
     private void refreshTable() {
         model.setRowCount(0);  // clear current table
         StringBuilder sql = new StringBuilder("SELECT idbill_main, service_rendered, UnitDay, duration_in_minutes, CityServiced, " +
-                "startTime, endTime, duration_in_minutes, date_worked, paid, language, bill_no, client_id, total_amt FROM bill_main where 1=1 ");
+                "startTime, endTime, duration_in_minutes, date_worked, paid, language, bill_no, client_id, total_amt FROM bill_main where client_id =" + clientIds.get(clientCombo.getSelectedIndex()));
         boolean ignoreDate =  ignoreDateCheckbox.isSelected();
         if (!ignoreDate) {
             sql.append(" and date_worked >= '")
