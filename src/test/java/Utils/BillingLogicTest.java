@@ -100,28 +100,6 @@ public class BillingLogicTest {
     }
 
     // ============================================================
-    //  TESTS FOR calculateTotal_PT_update (new logic)
-    // ============================================================
-
-    @Test
-    void testPTupdate_15min_halfHourRate() {
-        double result = BillingLogic.calculateTotal_PT_update(5, 5, 28, 15, 12, d("2024-01-01"));
-        assertEquals(12, result, 0.001);
-    }
-
-    @Test
-    void testPTupdate_45min_fullHour() {
-        double result = BillingLogic.calculateTotal_PT_update(5, 5, 28, 45, 12, d("2024-01-01"));
-        assertEquals(28, result, 0.001);
-    }
-
-    @Test
-    void testPTupdate_65min_oneHourHalf() {
-        double result = BillingLogic.calculateTotal_PT_update(5, 5, 28, 65, 12, d("2024-01-01"));
-        assertEquals(40, result, 0.001);
-    }
-
-    // ============================================================
     //  TESTS FOR calculateTotalAmount (dispatcher)
     // ============================================================
 

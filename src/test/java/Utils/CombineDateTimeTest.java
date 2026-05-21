@@ -9,7 +9,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 
-public class CombineDateTime {
+public class CombineDateTimeTest {
     /**
      * Combines a date-only value (yyyy-MM-dd) with a time-only value (HH:mm:ss)
      * into a full java.util.Date with both date and time preserved.

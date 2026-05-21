@@ -152,6 +152,7 @@ public static double calculateTotal_General(int offsetBy, int offsetunit, double
     }
 
 
+    /*
     public static double calculateTotal_PT(int offsetBy, int offsetunit, double tarif,
                                            double mins, double lessThan30Rate, java.sql.Date workedDate) {
         double isOffset = mins % offsetunit;
@@ -213,48 +214,49 @@ public static double calculateTotal_General(int offsetBy, int offsetunit, double
         }
         return total;
     }
+*/
+    public static double calculateTotal_PT(int offsetBy, int offsetunit, double tarif,
+                                           double mins, double lessThan30Rate, java.sql.Date workedDate) {
 
-    public static double calculateTotal_PT_update(int offsetBy, int offsetunit, double tarif,
-                                                  double mins, double lessThan30Rate, java.sql.Date workedDate) {
+        // PT RULE: if original minutes < 30 → bill lessThan30Rate
+        if (mins < 30) {
+            return lessThan30Rate;
+        }
 
         double adjustedMin = mins;
 
-        // 1️⃣ Minimum 30 minutes rule
+        // Minimum 30 minutes
         if (adjustedMin < 30) {
             adjustedMin = 30;
         }
 
-        // 2️⃣ Extract leftover minutes after full hours
+        // Extract leftover minutes
         double leftover = adjustedMin % 60;
         double fullHours = (adjustedMin - leftover) / 60;
 
-        // 3️⃣ Apply offset rounding rule
+        // Offset rounding
         if (leftover > 0) {
             double minutesToNextHour = 60 - leftover;
-
-            // If leftover is within offsetunit + offsetBy → round up
             if (minutesToNextHour <= (offsetunit + offsetBy)) {
                 leftover = 0;
                 fullHours += 1;
             }
-            // else → keep leftover as is
         }
 
-        // 4️⃣ Calculate total using PT rules
+        // Billing rules
         double total;
 
         if (leftover == 0) {
-            // exact hour
             total = tarif * fullHours;
         } else if (leftover < 30) {
-            // less than 30 minutes → PT half-hour rate
             total = (tarif * fullHours) + lessThan30Rate;
         } else {
-            // 30 minutes or more → full hour
             total = (tarif * fullHours) + tarif;
         }
 
         return total;
     }
+
+
 
 }
