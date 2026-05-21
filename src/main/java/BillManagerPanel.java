@@ -43,6 +43,10 @@ public class BillManagerPanel extends JPanel {
     private JSpinner fromDateSpinner, toDateSpinner, paidDateSpinner;
     private JComboBox<String> billNoFilterCombo = new JComboBox<>();
 
+    // Prevent combo listeners from firing during fillForm()
+    private boolean isFillingForm = false;
+
+
     // 🏗️ Constructor builds the form layout and sets behavior
     public BillManagerPanel() {
         setLayout(new BorderLayout(5, 5));  // spacing between regions
@@ -150,21 +154,33 @@ public class BillManagerPanel extends JPanel {
         // ── Initial data load ──
         loadAll();
 
-        clientCombo.addActionListener(e -> {
+//        clientCombo.addActionListener(e -> {
+//
+//            // Only refresh when a valid client is selected
+//            if (clientCombo.getSelectedIndex() >= 0) {
+//                refreshTable(); // or refreshTable() if you prefer synchronous
+//            }
+//        });
 
-            // Only refresh when a valid client is selected
-            if (clientCombo.getSelectedIndex() >= 0) {
-                refreshTable(); // or refreshTable() if you prefer synchronous
-            }
+        clientCombo.addActionListener(e -> {
+            if (isFillingForm) return;   // ⛔ ignore events during fillForm
+            refreshTable();
         });
+
+
+//        billNoFilterCombo.addActionListener(e -> {
+//
+//            Object sel = billNoFilterCombo.getSelectedItem();
+//            if (sel != null) {
+//                refreshTable();   // or refreshTable() if you use synchronous version
+//            }
+//        });
 
         billNoFilterCombo.addActionListener(e -> {
-
-            Object sel = billNoFilterCombo.getSelectedItem();
-            if (sel != null) {
-                refreshTable();   // or refreshTable() if you use synchronous version
-            }
+            if (isFillingForm) return;   // ⛔ ignore events during fillForm
+            refreshTable();
         });
+
 
 
     }
@@ -446,71 +462,110 @@ public class BillManagerPanel extends JPanel {
 
     // 🪄 When a row is selected, prefill the form with its data
     // 🪄 This method fills the input form with data from the selected table row
-    private void fillForm() {
-        // Step 1: Get the selected row index
-        int row = table.getSelectedRow();
+//    private void fillForm() {
+//        // Step 1: Get the selected row index
+//        int row = table.getSelectedRow();
+//
+//        // Step 2: If no row is selected, we do nothing
+//        if (row < 0) return;
+//
+//        // Step 3: Fill each input field with the corresponding column from the table model
+//
+//        // Service name (String)
+//        serviceField.setText(model.getValueAt(row, 1).toString());
+//
+//        // UnitDay checkbox (0 or 1 in table)
+//        unitDayField.setSelected((int) model.getValueAt(row, 2) == 1);
+//
+//        // City serviced (String)
+//        cityField.setText(model.getValueAt(row, 3).toString());
+//
+//        // ─────────────────────────────────────────────────────────────
+//        // 🕒 Time/date fields need special care because they must be java.util.Date
+//        // Otherwise JSpinner throws an IllegalArgumentException
+//        Object startObj = model.getValueAt(row, 4); // startTime
+//        Object endObj = model.getValueAt(row, 5); // endTime
+//        Object dateObj = model.getValueAt(row, 7); // date_worked
+//
+//        // Start time: convert Timestamp to Date
+//        if (startObj instanceof Timestamp) {
+//            startTimeSpinner.setValue(new Date(((Timestamp) startObj).getTime()));
+//        } else if (startObj instanceof Date) {
+//            startTimeSpinner.setValue(startObj);
+//        }
+//
+//        // End time: same
+//        if (endObj instanceof Timestamp) {
+//            endTimeSpinner.setValue(new Date(((Timestamp) endObj).getTime()));
+//        } else if (endObj instanceof Date) {
+//            endTimeSpinner.setValue(endObj);
+//        }
+//
+//        // Date worked: same logic
+//        if (dateObj instanceof Timestamp) {
+//            dateWorkedSpinner.setValue(new Date(((Timestamp) dateObj).getTime()));
+//        } else if (dateObj instanceof Date) {
+//            dateWorkedSpinner.setValue(dateObj);
+//        }
+//
+//        // Duration (minutes), shown as text
+//        durationField.setText(model.getValueAt(row, 6).toString());
+//
+//        // Paid checkbox (true or false as String or Boolean)
+//        paidCheck.setSelected(Boolean.parseBoolean(model.getValueAt(row, 8).toString()));
+//
+//        // Language (String)
+//        languageFieldCombo.setSelectedItem(model.getValueAt(row, 9).toString());
+//
+//        // Bill number (BigDecimal → shown as string)
+//        billNoField.setText(model.getValueAt(row, 10).toString());
+//
+//        // Client: match the ID from the table back to the combo box selection
+//        int clientId = (int) model.getValueAt(row, 11);  // client_id column
+//        int index = clientIds.indexOf(clientId);         // find matching index in list
+//        if (index >= 0) {
+//            clientCombo.setSelectedIndex(index);
+//        }
+//    }
 
-        // Step 2: If no row is selected, we do nothing
+    private void fillForm() {
+        int row = table.getSelectedRow();
         if (row < 0) return;
 
-        // Step 3: Fill each input field with the corresponding column from the table model
+        isFillingForm = true;   // 🔒 stop listeners from firing
 
-        // Service name (String)
-        serviceField.setText(model.getValueAt(row, 1).toString());
+        try {
+            serviceField.setText(model.getValueAt(row, 1).toString());
+            unitDayField.setSelected((int) model.getValueAt(row, 2) == 1);
+            cityField.setText(model.getValueAt(row, 3).toString());
 
-        // UnitDay checkbox (0 or 1 in table)
-        unitDayField.setSelected((int) model.getValueAt(row, 2) == 1);
+            Object startObj = model.getValueAt(row, 4);
+            Object endObj = model.getValueAt(row, 5);
+            Object dateObj = model.getValueAt(row, 7);
 
-        // City serviced (String)
-        cityField.setText(model.getValueAt(row, 3).toString());
+            if (startObj instanceof Timestamp)
+                startTimeSpinner.setValue(new Date(((Timestamp) startObj).getTime()));
 
-        // ─────────────────────────────────────────────────────────────
-        // 🕒 Time/date fields need special care because they must be java.util.Date
-        // Otherwise JSpinner throws an IllegalArgumentException
-        Object startObj = model.getValueAt(row, 4); // startTime
-        Object endObj = model.getValueAt(row, 5); // endTime
-        Object dateObj = model.getValueAt(row, 7); // date_worked
+            if (endObj instanceof Timestamp)
+                endTimeSpinner.setValue(new Date(((Timestamp) endObj).getTime()));
 
-        // Start time: convert Timestamp to Date
-        if (startObj instanceof Timestamp) {
-            startTimeSpinner.setValue(new Date(((Timestamp) startObj).getTime()));
-        } else if (startObj instanceof Date) {
-            startTimeSpinner.setValue(startObj);
-        }
+            if (dateObj instanceof Timestamp)
+                dateWorkedSpinner.setValue(new Date(((Timestamp) dateObj).getTime()));
 
-        // End time: same
-        if (endObj instanceof Timestamp) {
-            endTimeSpinner.setValue(new Date(((Timestamp) endObj).getTime()));
-        } else if (endObj instanceof Date) {
-            endTimeSpinner.setValue(endObj);
-        }
+            durationField.setText(model.getValueAt(row, 6).toString());
+            paidCheck.setSelected(Boolean.parseBoolean(model.getValueAt(row, 8).toString()));
+            languageFieldCombo.setSelectedItem(model.getValueAt(row, 9).toString());
+            billNoField.setText(model.getValueAt(row, 10).toString());
 
-        // Date worked: same logic
-        if (dateObj instanceof Timestamp) {
-            dateWorkedSpinner.setValue(new Date(((Timestamp) dateObj).getTime()));
-        } else if (dateObj instanceof Date) {
-            dateWorkedSpinner.setValue(dateObj);
-        }
+            int clientId = (int) model.getValueAt(row, 11);
+            int index = clientIds.indexOf(clientId);
+            if (index >= 0) clientCombo.setSelectedIndex(index);
 
-        // Duration (minutes), shown as text
-        durationField.setText(model.getValueAt(row, 6).toString());
-
-        // Paid checkbox (true or false as String or Boolean)
-        paidCheck.setSelected(Boolean.parseBoolean(model.getValueAt(row, 8).toString()));
-
-        // Language (String)
-        languageFieldCombo.setSelectedItem(model.getValueAt(row, 9).toString());
-
-        // Bill number (BigDecimal → shown as string)
-        billNoField.setText(model.getValueAt(row, 10).toString());
-
-        // Client: match the ID from the table back to the combo box selection
-        int clientId = (int) model.getValueAt(row, 11);  // client_id column
-        int index = clientIds.indexOf(clientId);         // find matching index in list
-        if (index >= 0) {
-            clientCombo.setSelectedIndex(index);
+        } finally {
+            isFillingForm = false;  // 🔓 re-enable listeners
         }
     }
+
 
 
     // 3) New helper to populate your Bill-No filter combo
