@@ -1,87 +1,107 @@
 package Utils;
 
+import org.junit.jupiter.api.Test;
+
+import java.sql.Date;
 import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.TextStyle;
+import java.time.LocalDateTime;
 import java.util.Calendar;
-import java.util.Date;
-import java.util.Locale;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class CombineDateTimeTest {
-    /**
-     * Combines a date-only value (yyyy-MM-dd) with a time-only value (HH:mm:ss)
-     * into a full java.util.Date with both date and time preserved.
-     *
-     * @param dateOnly the date part (usually from a spinner or calendar)
-     * @param timeOnly the time part (usually from a time picker)
-     * @return combined Date instance with full datetime
-     */
 
-    public static Date mergeDateAndTime(Date dateOnly, Date timeOnly) {
-//        Date datePart = (Date) dateWorkedSpinner.getValue();      // Gives yyyy-MM-dd
-//        Date timePart = (Date) startTimeSpinner.getValue();       // Gives HH:mm:ss
+    // ---------------------------------------------------------
+    // mergeDateAndTime
+    // ---------------------------------------------------------
+    @Test
+    void testMergeDateAndTime() {
+        Calendar dateCal = Calendar.getInstance();
+        dateCal.set(2024, Calendar.MARCH, 10, 0, 0, 0);
 
-        Calendar calDate = Calendar.getInstance();
-        calDate.setTime(dateOnly);
+        Calendar timeCal = Calendar.getInstance();
+        timeCal.set(1970, Calendar.JANUARY, 1, 14, 30, 0);
 
-        Calendar calTime = Calendar.getInstance();
-        calTime.setTime(timeOnly);
+        java.util.Date result = CombineDateTime.mergeDateAndTime(
+                dateCal.getTime(),
+                timeCal.getTime()
+        );
 
-// Apply time to date
-        calDate.set(Calendar.HOUR_OF_DAY, calTime.get(Calendar.HOUR_OF_DAY));
-        calDate.set(Calendar.MINUTE, calTime.get(Calendar.MINUTE));
-        calDate.set(Calendar.SECOND, 0);
-        calDate.set(Calendar.MILLISECOND, 0);
+        Calendar merged = Calendar.getInstance();
+        merged.setTime(result);
 
-// ✅ Combined datetime
-        return calDate.getTime();
-
+        assertEquals(2024, merged.get(Calendar.YEAR));
+        assertEquals(Calendar.MARCH, merged.get(Calendar.MONTH));
+        assertEquals(10, merged.get(Calendar.DAY_OF_MONTH));
+        assertEquals(14, merged.get(Calendar.HOUR_OF_DAY));
+        assertEquals(30, merged.get(Calendar.MINUTE));
+        assertEquals(0, merged.get(Calendar.SECOND));
     }
 
-    /**
-     * Calculates the difference between two Date objects in minutes.
-     *
-     * @param startDate the start timestamp
-     * @param endDate   the end timestamp
-     * @return elapsed time in minutes (fractional)
-     */
-    public static double calcDuration(Date startDate, Date endDate) {
-        long diffMillis = endDate.getTime() - startDate.getTime();
-        return diffMillis / (1000.0 * 60);
+    // ---------------------------------------------------------
+    // calcDuration(Date, Date)
+    // ---------------------------------------------------------
+    @Test
+    void testCalcDuration_Date() {
+        Calendar cal = Calendar.getInstance();
+        cal.set(2024, Calendar.JANUARY, 1, 10, 0, 0);
+        java.util.Date start = cal.getTime();
+
+        cal.set(2024, Calendar.JANUARY, 1, 11, 15, 0);
+        java.util.Date end = cal.getTime();
+
+        double mins = CombineDateTime.calcDuration(start, end);
+        assertEquals(75.0, mins, 0.001);
     }
 
-    public static String getDayOfWeek(java.sql.Date sqldate) {
-        LocalDate localDate = sqldate.toLocalDate();
-        return localDate.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
+    // ---------------------------------------------------------
+    // calcDuration(Timestamp, Timestamp, String)
+    // ---------------------------------------------------------
+    @Test
+    void testCalcDuration_Timestamp_NoOverride() {
+        Timestamp start = Timestamp.valueOf("2024-01-01 10:00:00");
+        Timestamp end   = Timestamp.valueOf("2024-01-01 11:00:00");
+
+        double mins = CombineDateTime.calcDuration(start, end, "");
+        assertEquals(60.0, mins, 0.001);
     }
 
-    public static double calcDuration(Timestamp startTime, Timestamp endTime, String durTxt) {
+    @Test
+    void testCalcDuration_Timestamp_WithOverride() {
+        Timestamp start = Timestamp.valueOf("2024-01-01 10:00:00");
+        Timestamp end   = Timestamp.valueOf("2024-01-01 11:00:00");
 
-        if ((null == durTxt || durTxt.isEmpty())) {
-            return calcDuration(startTime, endTime);
-        } else {
-            return Double.parseDouble(durTxt);
-        }
-
+        double mins = CombineDateTime.calcDuration(start, end, "42.5");
+        assertEquals(42.5, mins, 0.001);
     }
 
-    public static String DateFormatter(java.sql.Date rawDate, String pattern){
-//        "dd-MM-yyyy"
-        SimpleDateFormat sdf = new SimpleDateFormat(pattern);
-        return sdf.format(rawDate);
+    // ---------------------------------------------------------
+    // getDayOfWeek
+    // ---------------------------------------------------------
+    @Test
+    void testGetDayOfWeek() {
+        Date d = Date.valueOf("2024-03-10"); // This is a Sunday
+        String day = CombineDateTime.getDayOfWeek(d);
+        assertEquals("Sunday", day);
     }
 
-    public static String DateFormatter(String dateFormat, Timestamp ts){
-        // "yyyy-MMM-dd HH"
-        DateTimeFormatter OUTPUT_FMT =
-                DateTimeFormatter.ofPattern(dateFormat);
+    // ---------------------------------------------------------
+    // DateFormatter(Date, pattern)
+    // ---------------------------------------------------------
+    @Test
+    void testDateFormatter_Date() {
+        Date d = Date.valueOf("2024-03-10");
+        String formatted = CombineDateTime.DateFormatter(d, "dd-MM-yyyy");
+        assertEquals("10-03-2024", formatted);
+    }
 
-
-//        Timestamp ts = rs.getTimestamp(9);
-        return ts
-                .toLocalDateTime()
-                .format(OUTPUT_FMT);
+    // ---------------------------------------------------------
+    // DateFormatter(pattern, Timestamp)
+    // ---------------------------------------------------------
+    @Test
+    void testDateFormatter_Timestamp() {
+        Timestamp ts = Timestamp.valueOf(LocalDateTime.of(2024, 3, 10, 14, 0));
+        String formatted = CombineDateTime.DateFormatter("yyyy-MMM-dd HH", ts);
+        assertEquals("2024-Mar-10 14", formatted);
     }
 }
