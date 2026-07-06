@@ -152,8 +152,10 @@ public class InvoiceDataLoader {
                                 qty,
                                 total,
                                 frenchDate,
-                                lang
+                                lang,
+                                Boolean.TRUE   // or Boolean.FALSE
                         });
+
                     }
                     if (!any) {
                         JOptionPane.showMessageDialog(

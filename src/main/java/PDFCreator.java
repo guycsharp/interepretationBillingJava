@@ -136,7 +136,14 @@ public class PDFCreator {
 
             // STEP 7: Populate rows from the Swing table model
             double subTotal = 0;
+
             for (int i = 0; i < BillingManagerPanel.model.getRowCount(); i++) {
+
+                Boolean include = (Boolean) BillingManagerPanel.model.getValueAt(i, 6);
+                if (include == null || !include) {
+                    continue; // skip unchecked rows
+                }
+
                 // 1st column: service text + date + extra info
                 String serviceText =
                         BillingManagerPanel.model.getValueAt(i, 0).toString() +
@@ -148,17 +155,40 @@ public class PDFCreator {
                 // 2nd column: unit price
                 pdfTable.addCell(BillingManagerPanel.model.getValueAt(i, 1).toString().replace(".", ",") + "0 €");
 
-                // 3rd column: quantity (days/hours)
+                // 3rd column: quantity
                 String mins = BillingManagerPanel.model.getValueAt(i, 2).toString();
                 pdfTable.addCell(mins.substring(0, mins.indexOf('.')) + " minutes");
 
-                // 4th column: total price for this line
+                // 4th column: total price
                 String lineTotal = BillingManagerPanel.model.getValueAt(i, 3).toString();
                 pdfTable.addCell(lineTotal.replace(".", ",") + "0 €");
 
-                // Accumulate for the sub-total
                 subTotal += Double.parseDouble(lineTotal);
             }
+
+//            for (int i = 0; i < BillingManagerPanel.model.getRowCount(); i++) {
+//                // 1st column: service text + date + extra info
+//                String serviceText =
+//                        BillingManagerPanel.model.getValueAt(i, 0).toString() +
+//                                " en " + BillingManagerPanel.model.getValueAt(i, 5).toString() +
+//                                "\n" + BillingManagerPanel.model.getValueAt(i, 4).toString();
+//
+//                pdfTable.addCell(serviceText);
+//
+//                // 2nd column: unit price
+//                pdfTable.addCell(BillingManagerPanel.model.getValueAt(i, 1).toString().replace(".", ",") + "0 €");
+//
+//                // 3rd column: quantity (days/hours)
+//                String mins = BillingManagerPanel.model.getValueAt(i, 2).toString();
+//                pdfTable.addCell(mins.substring(0, mins.indexOf('.')) + " minutes");
+//
+//                // 4th column: total price for this line
+//                String lineTotal = BillingManagerPanel.model.getValueAt(i, 3).toString();
+//                pdfTable.addCell(lineTotal.replace(".", ",") + "0 €");
+//
+//                // Accumulate for the sub-total
+//                subTotal += Double.parseDouble(lineTotal);
+//            }
 
 
             // STEP 8: Add a subtotal row under "Total (€)"

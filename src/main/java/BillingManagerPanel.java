@@ -19,6 +19,7 @@ public class BillingManagerPanel {
     public static final String myaddress = ConfigLoader.get("db.address");
     public static final int width = 900, height = 600;
     public static JCheckBox exportDayBill = new JCheckBox("Per Day Billing");;
+    public static JCheckBox selectAll = new JCheckBox("Select All");;
 
 //    public static void main(String[] args) {
 //        SwingUtilities.invokeLater(InvoiceApp::createAndShowGUI);
@@ -70,13 +71,23 @@ public class BillingManagerPanel {
         billedOnSpinner = makeDateSpinner();
         filterPanel.add(billedOnSpinner);
 
+        filterPanel.add(selectAll);
+
+
         mainPanel.add(filterPanel, BorderLayout.NORTH);
 
         // 📋 Center: invoice table
         model = new DefaultTableModel(
-                new Object[]{"Prestation", "Tarif (€)", "Quantité", "Total (€)", "Date Worked", "Language"},
+                new Object[]{"Prestation", "Tarif (€)", "Quantité", "Total (€)", "Date Worked", "Language", "Include in Bill"},
                 0
-        );
+        ) {
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                if (columnIndex == 6) return Boolean.class;   // last column = checkbox
+                return Object.class;
+            }
+        };
+
         table = new JTable(model);
         mainPanel.add(new JScrollPane(table), BorderLayout.CENTER);
 
@@ -106,6 +117,15 @@ public class BillingManagerPanel {
 
         mainPanel.add(inputPanel, BorderLayout.SOUTH);
 
+        selectAll.addActionListener(e -> {
+            boolean checked = selectAll.isSelected();
+
+            for (int row = 0; row < model.getRowCount(); row++) {
+                model.setValueAt(checked, row, 6);   // column 6 = Include in Bill
+            }
+        });
+
+
         // ➕ Add row manually
         addButton.addActionListener(e -> {
             String service = prestationField.getText().trim();
@@ -118,7 +138,7 @@ public class BillingManagerPanel {
             try {
                 double tarif = Double.parseDouble(tarifText);
                 int qty = Integer.parseInt(qtyText);
-                model.addRow(new Object[]{service, tarif, qty, tarif * qty});
+                model.addRow(new Object[]{service, tarif, qty, tarif * qty, null, null, Boolean.TRUE});
                 prestationField.setText("");
                 tarifField.setText("");
                 qtyField.setText("");
@@ -140,13 +160,40 @@ public class BillingManagerPanel {
         });
 
         // 📤 Export to PDF
-        exportButton.addActionListener(e -> PDFCreator.exportPDF(
-                null,
-                System.currentTimeMillis() + "",
-                clientAdd,
-                myaddress,
-                ((SpinnerDateModel) billedOnSpinner.getModel()).getDate(), billIds
-        ));
+        exportButton.addActionListener(e -> {
+
+            HashMap<Integer, String> filtered = new HashMap<>();
+
+            int rowIndex = 0;
+            for (Integer billId : billIds.keySet()) {
+
+                Boolean include = (Boolean) model.getValueAt(rowIndex, 6);
+
+                if (include != null && include) {
+                    filtered.put(billId, billIds.get(billId));
+                }
+
+                rowIndex++;
+            }
+
+            PDFCreator.exportPDF(
+                    null,
+                    System.currentTimeMillis() + "",
+                    clientAdd,
+                    myaddress,
+                    ((SpinnerDateModel) billedOnSpinner.getModel()).getDate(),
+                    filtered
+            );
+        });
+
+
+//        exportButton.addActionListener(e -> PDFCreator.exportPDF(
+//                null,
+//                System.currentTimeMillis() + "",
+//                clientAdd,
+//                myaddress,
+//                ((SpinnerDateModel) billedOnSpinner.getModel()).getDate(), billIds
+//        ));
 
         return mainPanel;
     }
