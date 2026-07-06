@@ -151,16 +151,26 @@ public class PDFCreator {
                                 "\n" + BillingManagerPanel.model.getValueAt(i, 4).toString();
 
                 pdfTable.addCell(serviceText);
-
-                // 2nd column: unit price
-                pdfTable.addCell(BillingManagerPanel.model.getValueAt(i, 1).toString().replace(".", ",") + "0 €");
-
-                // 3rd column: quantity
+                String lineTotal = BillingManagerPanel.model.getValueAt(i, 3).toString();
                 String mins = BillingManagerPanel.model.getValueAt(i, 2).toString();
-                pdfTable.addCell(mins.substring(0, mins.indexOf('.')) + " minutes");
+
+                if(BillingManagerPanel.exportDayBill.isSelected()) {
+                    // 2nd column: unit price
+                    pdfTable.addCell(lineTotal.replace(".", ",") + "0 €");
+                    // 3rd column: quantity
+                    pdfTable.addCell("1");
+                } else {
+                    // 2nd column: unit price
+                    pdfTable.addCell(BillingManagerPanel.model.getValueAt(i, 1).toString().replace(".", ",") + "0 €");
+                    // 3rd column: quantity
+                    pdfTable.addCell(mins.substring(0, mins.indexOf('.')) + " minutes");
+                }
+
+
+
+
 
                 // 4th column: total price
-                String lineTotal = BillingManagerPanel.model.getValueAt(i, 3).toString();
                 pdfTable.addCell(lineTotal.replace(".", ",") + "0 €");
 
                 subTotal += Double.parseDouble(lineTotal);
