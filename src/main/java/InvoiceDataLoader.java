@@ -146,6 +146,16 @@ public class InvoiceDataLoader {
 
                         String lang = rs2.getString("language");
 
+//                        model.addRow(new Object[]{
+//                                service,
+//                                tarif,
+//                                qty,
+//                                total,
+//                                frenchDate,
+//                                lang,
+//                                Boolean.TRUE   // or Boolean.FALSE
+//                        });
+
                         model.addRow(new Object[]{
                                 service,
                                 tarif,
@@ -153,8 +163,10 @@ public class InvoiceDataLoader {
                                 total,
                                 frenchDate,
                                 lang,
-                                Boolean.TRUE   // or Boolean.FALSE
+                                Boolean.TRUE,   // Include in Bill
+                                (unitDay==1)?"Yes":"No"         // 1 = day, 0 = hour
                         });
+
 
                     }
                     if (!any) {
