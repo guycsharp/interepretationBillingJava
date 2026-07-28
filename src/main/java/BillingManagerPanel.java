@@ -18,7 +18,9 @@ public class BillingManagerPanel {
     public static JCheckBox ignorePaidCheckbox;
     public static final String myaddress = ConfigLoader.get("db.address");
     public static final int width = 900, height = 600;
-    public static JCheckBox exportDayBill = new JCheckBox("Per Day Billing");;
+    public static JCheckBox exportDayBill = new JCheckBox("Per Day Billing");
+    public static JCheckBox exportTest = new JCheckBox("Export Test");
+
 //    public static JCheckBox selectAll = new JCheckBox("Select All");;
 
     public static JRadioButton rbAll = new JRadioButton("All");
@@ -91,7 +93,7 @@ public class BillingManagerPanel {
         filterPanel.add(rbAdhoc);
         filterPanel.add(rbByHour);
         filterPanel.add(rbByDay);
-
+        filterPanel.add(exportTest);
 
 
         mainPanel.add(filterPanel, BorderLayout.NORTH);
@@ -135,6 +137,7 @@ public class BillingManagerPanel {
         inputPanel.add(addButton);
         inputPanel.add(exportButton);
         inputPanel.add(exportDayBill); // filler
+
 
         inputPanel.add(new JLabel("City Worked For:"));
         inputPanel.add(cityWorkedForField);
@@ -242,7 +245,8 @@ public class BillingManagerPanel {
                     clientAdd,
                     myaddress,
                     ((SpinnerDateModel) billedOnSpinner.getModel()).getDate(),
-                    filtered
+                    filtered,
+                    exportTest.isSelected()
             );
         });
 

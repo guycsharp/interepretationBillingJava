@@ -55,7 +55,7 @@ public class PDFCreator {
      * @param address   the client’s address block (may contain "\n")
      * @param myaddress our own address block (may contain "\n")
      */
-    static void exportPDF(Component parent, String billNo, String address, String myaddress, Date billedOn, HashMap<Integer, String> billNos) {
+    static void exportPDF(Component parent, String billNo, String address, String myaddress, Date billedOn, HashMap<Integer, String> billNos, boolean exportTest) {
 
         // Pull in the rest of our invoice info from InvoiceApp
         String company = (String) BillingManagerPanel.companyComboBox.getSelectedItem();
@@ -234,10 +234,12 @@ public class PDFCreator {
 
             // STEP 10: Append a signature image at the bottom-left
             try {
-                Image signature = Image.getInstance("resources/RojiSig.png");
-                signature.scaleToFit(100, 50);
-                signature.setAlignment(Element.ALIGN_LEFT);
-                doc.add(signature);
+                if(!exportTest) {
+                    Image signature = Image.getInstance("resources/RojiSig.png");
+                    signature.scaleToFit(100, 50);
+                    signature.setAlignment(Element.ALIGN_LEFT);
+                    doc.add(signature);
+                }
             } catch (Exception imgEx) {
                 // If the image fails to load, we still continue
                 imgEx.printStackTrace();
@@ -250,8 +252,9 @@ public class PDFCreator {
                     "PDF exported successfully to:\n" + path
             );
 
-
-            updateBillNosInBills(billNos, billNo);
+            if(!exportTest) {
+                updateBillNosInBills(billNos, billNo);
+            }
 
         } catch (Exception ex) {
             // Any exception along the way pops up an error dialog
