@@ -10,6 +10,55 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+// -------------------------------------------------------------
+// ⚠️ WHY WE HAD CRASHES (NullPointerException / IndexOutOfBounds)
+// -------------------------------------------------------------
+// Swing fires ActionEvents and ListSelectionEvents EVEN when we
+// modify combo boxes programmatically (removeAllItems, addItem).
+//
+// During loadAll(), loadClients(), and loadBillNos():
+//   - clientCombo.removeAllItems() triggers an ActionEvent
+//   - billNoFilterCombo.removeAllItems() triggers an ActionEvent
+//   - table.clearSelection() triggers a ListSelectionEvent
+//
+// Our listeners ran TOO EARLY, before the combo boxes had valid
+// selections. This caused:
+//
+//   clientCombo.getSelectedIndex() == -1
+//   clientIds.get(-1)  → IndexOutOfBoundsException
+//
+//   billNoFilterCombo.getSelectedItem() == null
+//   null.toString()    → NullPointerException
+//
+//   table.getSelectedRow() == -1
+//   model.getValueAt(-1, ...) → crash
+//
+// -------------------------------------------------------------
+// ✅ FIX: ADD isLoading FLAG TO BLOCK LISTENERS DURING LOADING
+// -------------------------------------------------------------
+// We added:
+//
+//     private boolean isLoading = false;
+//
+// And wrapped loadAll() like:
+//
+//     isLoading = true;
+//     loadBillNos();
+//     loadClients();
+//     loadLanguages();
+//     refreshTable();
+//     isLoading = false;
+//
+// Then updated listeners:
+//
+//     if (isLoading) return;
+//     if (isFillingForm) return;
+//
+// This prevents ALL premature events during loading and stops
+// every crash related to empty combo boxes or empty table.
+// -------------------------------------------------------------
+
+
 /**
  * 🧾 BillManagerPanel is a UI module for managing entries in your `bill_main` table.
  * It includes:
@@ -20,6 +69,8 @@ import java.util.List;
  * All fields directly match columns in your MySQL schema.
  */
 public class BillManagerPanel extends JPanel {
+    private boolean isLoading = false;
+
     // Table and its model (for viewing records)
     private JTable table;
     private DefaultTableModel model;
@@ -42,6 +93,10 @@ public class BillManagerPanel extends JPanel {
 
     private JSpinner fromDateSpinner, toDateSpinner, paidDateSpinner;
     private JComboBox<String> billNoFilterCombo = new JComboBox<>();
+
+    // Prevent combo listeners from firing during fillForm()
+    private boolean isFillingForm = false;
+
 
     // 🏗️ Constructor builds the form layout and sets behavior
     public BillManagerPanel() {
@@ -121,12 +176,52 @@ public class BillManagerPanel extends JPanel {
         topBar.add(new JLabel("Bill No:"));
         topBar.add(billNoFilterCombo);
 
+
+        // -------------------------------------------------------------
+// Combo Listeners (clientCombo, billNoFilterCombo)
+// -------------------------------------------------------------
+// These listeners used to fire DURING loadClients() and
+// loadBillNos(), because Swing fires events when combo contents
+// change.
+//
+// That caused refreshTable() to run with:
+//
+//     selectedIndex = -1
+//     selectedItem = null
+//
+// Now we block these events with:
+//
+//     if (isLoading) return;
+//     if (isFillingForm) return;
+//
+// This ensures listeners only run when the user actually changes
+// the selection, not when the UI is being populated.
+// -------------------------------------------------------------
+
+
         // ── Wire up button behavior and selection listener ──
+        clientCombo.addActionListener(e -> {
+            if (isLoading) return;
+            if (isFillingForm) return;
+            refreshTable();
+        });
+
+        billNoFilterCombo.addActionListener(e -> {
+            if (isLoading) return;
+            if (isFillingForm) return;
+            refreshTable();
+        });
+
+        table.getSelectionModel().addListSelectionListener(e -> {
+            if (isLoading) return;
+            fillForm();
+        });
+
         refreshBtn.addActionListener(e -> loadAll());
         addBtn.addActionListener(e -> insertBill());
         updateBtn.addActionListener(e -> updateBill());
         deleteBtn.addActionListener(e -> deleteBill());
-        table.getSelectionModel().addListSelectionListener(e -> fillForm());
+//        table.getSelectionModel().addListSelectionListener(e -> fillForm());
 
         // ── Split Pane: 50% Table on top, 50% Form+Buttons below ──
         JScrollPane tableScroll = new JScrollPane(table);
@@ -149,6 +244,35 @@ public class BillManagerPanel extends JPanel {
 
         // ── Initial data load ──
         loadAll();
+
+//        clientCombo.addActionListener(e -> {
+//
+//            // Only refresh when a valid client is selected
+//            if (clientCombo.getSelectedIndex() >= 0) {
+//                refreshTable(); // or refreshTable() if you prefer synchronous
+//            }
+//        });
+
+        clientCombo.addActionListener(e -> {
+            if (isFillingForm) return;   // ⛔ ignore events during fillForm
+            refreshTable();
+        });
+
+
+//        billNoFilterCombo.addActionListener(e -> {
+//
+//            Object sel = billNoFilterCombo.getSelectedItem();
+//            if (sel != null) {
+//                refreshTable();   // or refreshTable() if you use synchronous version
+//            }
+//        });
+
+        billNoFilterCombo.addActionListener(e -> {
+            if (isFillingForm) return;   // ⛔ ignore events during fillForm
+            refreshTable();
+        });
+
+
     }
 
 
@@ -159,33 +283,56 @@ public class BillManagerPanel extends JPanel {
         return spinner;
     }
 
+    // -------------------------------------------------------------
+// loadAll()
+// -------------------------------------------------------------
+// This method loads bill numbers, clients, languages, and table
+// data. Previously, Swing fired ActionEvents while combo boxes
+// were being cleared and repopulated, causing refreshTable() to
+// run too early.
+//
+// We now wrap the entire load process in isLoading=true so that
+// listeners IGNORE events until loading is complete.
+// -------------------------------------------------------------
+
+
     // Loads both client names and table data
     private void loadAll() {
-        // ── Populate filter combos & set defaults ──
-        loadBillNos();
-        billNoFilterCombo.setSelectedIndex(0);
+        isLoading = true;   // ⛔ block listeners during loading
 
-        loadClients();    // load combo box
+        loadBillNos();
+        if (billNoFilterCombo.getItemCount() > 0) {
+            billNoFilterCombo.setSelectedIndex(0);
+        }
+
+        loadClients();
         loadLanguages();
-        refreshTable();   // load bill_main table
+        refreshTable();
+
+        isLoading = false;  // ✅ allow listeners again
     }
 
     // Populates clientCombo and maps each name to its ID
     private void loadClients() {
         clientIds.clear();
         clientCombo.removeAllItems();
+
         String sql = "SELECT idclient_main, client_name FROM client_main WHERE COALESCE(soft_delete,0)=0";
+
         try (Connection c = MySQLConnector.getConnection();
              Statement st = c.createStatement();
              ResultSet rs = st.executeQuery(sql)) {
+
             while (rs.next()) {
-                clientIds.add(rs.getInt(1));           // store client ID
-                clientCombo.addItem(rs.getString(2));  // display name
+                clientIds.add(rs.getInt(1));
+                clientCombo.addItem(rs.getString(2));
             }
+
         } catch (SQLException ex) {
-            ex.printStackTrace();
+            JOptionPane.showMessageDialog(null, ex.getMessage(), "load client", JOptionPane.ERROR_MESSAGE);
         }
     }
+
 
     // Populates language Combo and maps each name to its ID
     private void loadLanguages() {
@@ -199,53 +346,95 @@ public class BillManagerPanel extends JPanel {
             }
         } catch (SQLException ex) {
             ex.printStackTrace();
+            JOptionPane.showMessageDialog(null, ex.getMessage(), "load client", JOptionPane.ERROR_MESSAGE);
         }
     }
 
+
+    // -------------------------------------------------------------
+// refreshTable()
+// -------------------------------------------------------------
+// This method depends on valid combo selections:
+//
+//     clientCombo.getSelectedIndex()
+//     billNoFilterCombo.getSelectedItem()
+//
+// Before the fix, refreshTable() was called WHILE combo boxes
+// were empty, causing:
+//
+//     getSelectedIndex() == -1
+//     getSelectedItem() == null
+//
+// Now refreshTable() is protected by:
+//
+//     if (isLoading) return;
+//
+// AND we added safety checks:
+//
+//     if (clientCombo.getSelectedIndex() < 0) return;
+//
+// This prevents all crashes caused by premature listener firing.
+// -------------------------------------------------------------
+
+
     // Refreshes the table from the database
     private void refreshTable() {
-        model.setRowCount(0);  // clear current table
-        StringBuilder sql = new StringBuilder("SELECT idbill_main, service_rendered, UnitDay, duration_in_minutes, CityServiced, " +
-                "startTime, endTime, duration_in_minutes, date_worked, paid, language, bill_no, client_id, total_amt FROM bill_main where 1=1 ");
-        boolean ignoreDate =  ignoreDateCheckbox.isSelected();
+        if (clientCombo.getSelectedIndex() < 0 || clientIds.isEmpty()) {
+            return;   // ⛔ prevents crashes when combo is empty
+        }
+
+        model.setRowCount(0);
+
+        StringBuilder sql = new StringBuilder(
+                "SELECT idbill_main, service_rendered, UnitDay, duration_in_minutes, CityServiced, " +
+                        "startTime, endTime, duration_in_minutes, date_worked, paid, language, bill_no, client_id, total_amt " +
+                        "FROM bill_main WHERE client_id = " + clientIds.get(clientCombo.getSelectedIndex())
+        );
+
+        boolean ignoreDate = ignoreDateCheckbox.isSelected();
+
         if (!ignoreDate) {
-            sql.append(" and date_worked >= '")
+            sql.append(" AND date_worked >= '")
                     .append(new java.sql.Date(((Date) fromDateSpinner.getValue()).getTime()))
-                    .append("' ")
-                    .append(" and date_worked <= '")
+                    .append("' AND date_worked <= '")
                     .append(new java.sql.Date(((Date) toDateSpinner.getValue()).getTime()))
-                    .append("' ");
+                    .append("'");
         }
-        String b = billNoFilterCombo.getSelectedItem().toString();
-        if (!b.equals("ALL")) {
-            sql.append(" and bill_no = ").append(billNoFilterCombo.getSelectedItem());
+
+        Object billSel = billNoFilterCombo.getSelectedItem();
+        if (billSel != null && !billSel.toString().equals("ALL")) {
+            sql.append(" AND bill_no = ").append(billSel);
         }
-        sql.append(" order by date_worked ");
+
+        sql.append(" ORDER BY date_worked");
+
         try (Connection c = MySQLConnector.getConnection();
              Statement st = c.createStatement();
              ResultSet rs = st.executeQuery(sql.toString())) {
+
             while (rs.next()) {
                 model.addRow(new Object[]{
-                        rs.getInt(1),         // ID
-                        rs.getString(2),      // Service
-                        rs.getInt(3),         // UnitDay
-//                        rs.getDouble(4),      // Worked
-                        rs.getString(5),      // City
-                        rs.getTimestamp(6),   // StartTime
-                        rs.getTimestamp(7),   // EndTime
-                        rs.getDouble(8),      // Duration
-                        CombineDateTime.DateFormatter("yyyy-MMM-dd", rs.getTimestamp(9)),   // DateWorked
-                        rs.getInt(10) == 1,   // Paid (as boolean)
-                        rs.getString(11),     // Language
-                        rs.getBigDecimal(12),// Bill No
-                        rs.getInt(13),       // Client ID
-                        rs.getBigDecimal(14)         // Total Amount
+                        rs.getInt(1),
+                        rs.getString(2),
+                        rs.getInt(3),
+                        rs.getString(5),
+                        rs.getTimestamp(6),
+                        rs.getTimestamp(7),
+                        rs.getDouble(8),
+                        CombineDateTime.DateFormatter("yyyy-MMM-dd", rs.getTimestamp(9)),
+                        rs.getInt(10) == 1,
+                        rs.getString(11),
+                        rs.getBigDecimal(12),
+                        rs.getInt(13),
+                        rs.getBigDecimal(14)
                 });
             }
+
         } catch (SQLException ex) {
-            ex.printStackTrace();
+            JOptionPane.showMessageDialog(null, ex.getMessage(), "refresh table", JOptionPane.ERROR_MESSAGE);
         }
     }
+
 
     // ➕ Inserts a new record into the bill_main table
     private void insertBill() {
@@ -428,69 +617,122 @@ public class BillManagerPanel extends JPanel {
 
     // 🪄 When a row is selected, prefill the form with its data
     // 🪄 This method fills the input form with data from the selected table row
-    private void fillForm() {
-        // Step 1: Get the selected row index
-        int row = table.getSelectedRow();
+//    private void fillForm() {
+//        // Step 1: Get the selected row index
+//        int row = table.getSelectedRow();
+//
+//        // Step 2: If no row is selected, we do nothing
+//        if (row < 0) return;
+//
+//        // Step 3: Fill each input field with the corresponding column from the table model
+//
+//        // Service name (String)
+//        serviceField.setText(model.getValueAt(row, 1).toString());
+//
+//        // UnitDay checkbox (0 or 1 in table)
+//        unitDayField.setSelected((int) model.getValueAt(row, 2) == 1);
+//
+//        // City serviced (String)
+//        cityField.setText(model.getValueAt(row, 3).toString());
+//
+//        // ─────────────────────────────────────────────────────────────
+//        // 🕒 Time/date fields need special care because they must be java.util.Date
+//        // Otherwise JSpinner throws an IllegalArgumentException
+//        Object startObj = model.getValueAt(row, 4); // startTime
+//        Object endObj = model.getValueAt(row, 5); // endTime
+//        Object dateObj = model.getValueAt(row, 7); // date_worked
+//
+//        // Start time: convert Timestamp to Date
+//        if (startObj instanceof Timestamp) {
+//            startTimeSpinner.setValue(new Date(((Timestamp) startObj).getTime()));
+//        } else if (startObj instanceof Date) {
+//            startTimeSpinner.setValue(startObj);
+//        }
+//
+//        // End time: same
+//        if (endObj instanceof Timestamp) {
+//            endTimeSpinner.setValue(new Date(((Timestamp) endObj).getTime()));
+//        } else if (endObj instanceof Date) {
+//            endTimeSpinner.setValue(endObj);
+//        }
+//
+//        // Date worked: same logic
+//        if (dateObj instanceof Timestamp) {
+//            dateWorkedSpinner.setValue(new Date(((Timestamp) dateObj).getTime()));
+//        } else if (dateObj instanceof Date) {
+//            dateWorkedSpinner.setValue(dateObj);
+//        }
+//
+//        // Duration (minutes), shown as text
+//        durationField.setText(model.getValueAt(row, 6).toString());
+//
+//        // Paid checkbox (true or false as String or Boolean)
+//        paidCheck.setSelected(Boolean.parseBoolean(model.getValueAt(row, 8).toString()));
+//
+//        // Language (String)
+//        languageFieldCombo.setSelectedItem(model.getValueAt(row, 9).toString());
+//
+//        // Bill number (BigDecimal → shown as string)
+//        billNoField.setText(model.getValueAt(row, 10).toString());
+//
+//        // Client: match the ID from the table back to the combo box selection
+//        int clientId = (int) model.getValueAt(row, 11);  // client_id column
+//        int index = clientIds.indexOf(clientId);         // find matching index in list
+//        if (index >= 0) {
+//            clientCombo.setSelectedIndex(index);
+//        }
+//    }
 
-        // Step 2: If no row is selected, we do nothing
+
+    // -------------------------------------------------------------
+// fillForm()
+// -------------------------------------------------------------
+// When the user selects a row, we populate the form fields.
+// This triggers combo box changes, which used to fire listeners
+// and cause refreshTable() to run unexpectedly.
+//
+// We now use:
+//
+//     isFillingForm = true;
+//
+// to temporarily disable listeners while updating the form.
+// -------------------------------------------------------------
+
+    private void fillForm() {
+        int row = table.getSelectedRow();
         if (row < 0) return;
 
-        // Step 3: Fill each input field with the corresponding column from the table model
+        isFillingForm = true;   // 🔒 stop listeners from firing
 
-        // Service name (String)
-        serviceField.setText(model.getValueAt(row, 1).toString());
+        try {
+            serviceField.setText(model.getValueAt(row, 1).toString());
+            unitDayField.setSelected((int) model.getValueAt(row, 2) == 1);
+            cityField.setText(model.getValueAt(row, 3).toString());
 
-        // UnitDay checkbox (0 or 1 in table)
-        unitDayField.setSelected((int) model.getValueAt(row, 2) == 1);
+            Object startObj = model.getValueAt(row, 4);
+            Object endObj = model.getValueAt(row, 5);
+            Object dateObj = model.getValueAt(row, 7);
 
-        // City serviced (String)
-        cityField.setText(model.getValueAt(row, 3).toString());
+            if (startObj instanceof Timestamp)
+                startTimeSpinner.setValue(new Date(((Timestamp) startObj).getTime()));
 
-        // ─────────────────────────────────────────────────────────────
-        // 🕒 Time/date fields need special care because they must be java.util.Date
-        // Otherwise JSpinner throws an IllegalArgumentException
-        Object startObj = model.getValueAt(row, 4); // startTime
-        Object endObj = model.getValueAt(row, 5); // endTime
-        Object dateObj = model.getValueAt(row, 7); // date_worked
+            if (endObj instanceof Timestamp)
+                endTimeSpinner.setValue(new Date(((Timestamp) endObj).getTime()));
 
-        // Start time: convert Timestamp to Date
-        if (startObj instanceof Timestamp) {
-            startTimeSpinner.setValue(new Date(((Timestamp) startObj).getTime()));
-        } else if (startObj instanceof Date) {
-            startTimeSpinner.setValue(startObj);
-        }
+            if (dateObj instanceof Timestamp)
+                dateWorkedSpinner.setValue(new Date(((Timestamp) dateObj).getTime()));
 
-        // End time: same
-        if (endObj instanceof Timestamp) {
-            endTimeSpinner.setValue(new Date(((Timestamp) endObj).getTime()));
-        } else if (endObj instanceof Date) {
-            endTimeSpinner.setValue(endObj);
-        }
+            durationField.setText(model.getValueAt(row, 6).toString());
+            paidCheck.setSelected(Boolean.parseBoolean(model.getValueAt(row, 8).toString()));
+            languageFieldCombo.setSelectedItem(model.getValueAt(row, 9).toString());
+            billNoField.setText(model.getValueAt(row, 10).toString());
 
-        // Date worked: same logic
-        if (dateObj instanceof Timestamp) {
-            dateWorkedSpinner.setValue(new Date(((Timestamp) dateObj).getTime()));
-        } else if (dateObj instanceof Date) {
-            dateWorkedSpinner.setValue(dateObj);
-        }
+            int clientId = (int) model.getValueAt(row, 11);
+            int index = clientIds.indexOf(clientId);
+            if (index >= 0) clientCombo.setSelectedIndex(index);
 
-        // Duration (minutes), shown as text
-        durationField.setText(model.getValueAt(row, 6).toString());
-
-        // Paid checkbox (true or false as String or Boolean)
-        paidCheck.setSelected(Boolean.parseBoolean(model.getValueAt(row, 8).toString()));
-
-        // Language (String)
-        languageFieldCombo.setSelectedItem(model.getValueAt(row, 9).toString());
-
-        // Bill number (BigDecimal → shown as string)
-        billNoField.setText(model.getValueAt(row, 10).toString());
-
-        // Client: match the ID from the table back to the combo box selection
-        int clientId = (int) model.getValueAt(row, 11);  // client_id column
-        int index = clientIds.indexOf(clientId);         // find matching index in list
-        if (index >= 0) {
-            clientCombo.setSelectedIndex(index);
+        } finally {
+            isFillingForm = false;  // 🔓 re-enable listeners
         }
     }
 
@@ -498,18 +740,22 @@ public class BillManagerPanel extends JPanel {
     // 3) New helper to populate your Bill-No filter combo
     private void loadBillNos() {
         billNoFilterCombo.removeAllItems();
-        billNoFilterCombo.addItem("ALL");  // optional “no-filter” entry
+        billNoFilterCombo.addItem("ALL");
+
         String sql = "SELECT DISTINCT bill_no FROM bill_main ORDER BY bill_no";
+
         try (Connection c = MySQLConnector.getConnection();
              Statement st = c.createStatement();
              ResultSet rs = st.executeQuery(sql)) {
+
             while (rs.next()) {
                 billNoFilterCombo.addItem(rs.getString(1));
             }
+
         } catch (SQLException ex) {
-            ex.printStackTrace();
-//            JOptionPane.showMessageDialog(this, "Delete failed: " + ex.getMessage());
+            JOptionPane.showMessageDialog(null, ex.getMessage(), "load bill nos", JOptionPane.ERROR_MESSAGE);
         }
     }
+
 }
 

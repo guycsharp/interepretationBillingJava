@@ -18,7 +18,19 @@ public class BillingManagerPanel {
     public static JCheckBox ignorePaidCheckbox;
     public static final String myaddress = ConfigLoader.get("db.address");
     public static final int width = 900, height = 600;
-    public static JCheckBox exportDayBill = new JCheckBox("Per Day Billing");;
+    public static JCheckBox exportDayBill = new JCheckBox("Per Day Billing");
+    public static JCheckBox exportTest = new JCheckBox("Export Test");
+
+//    public static JCheckBox selectAll = new JCheckBox("Select All");;
+
+    public static JRadioButton rbAll = new JRadioButton("All");
+    public static JRadioButton rbNone = new JRadioButton("None");
+    public static JRadioButton rbAdhoc = new JRadioButton("Ad-hoc");
+    public static JRadioButton rbByHour = new JRadioButton("By Hour");
+    public static JRadioButton rbByDay = new JRadioButton("By Day");
+
+    public static ButtonGroup selectionGroup = new ButtonGroup();
+
 
 //    public static void main(String[] args) {
 //        SwingUtilities.invokeLater(InvoiceApp::createAndShowGUI);
@@ -70,13 +82,38 @@ public class BillingManagerPanel {
         billedOnSpinner = makeDateSpinner();
         filterPanel.add(billedOnSpinner);
 
+        selectionGroup.add(rbAll);
+        selectionGroup.add(rbNone);
+        selectionGroup.add(rbAdhoc);
+        selectionGroup.add(rbByHour);
+        selectionGroup.add(rbByDay);
+
+        filterPanel.add(rbAll);
+        filterPanel.add(rbNone);
+        filterPanel.add(rbAdhoc);
+        filterPanel.add(rbByHour);
+        filterPanel.add(rbByDay);
+        filterPanel.add(exportTest);
+
+
         mainPanel.add(filterPanel, BorderLayout.NORTH);
 
         // 📋 Center: invoice table
         model = new DefaultTableModel(
-                new Object[]{"Prestation", "Tarif (€)", "Quantité", "Total (€)", "Date Worked", "Language"},
+//                new Object[]{"Prestation", "Tarif (€)", "Quantité", "Total (€)", "Date Worked", "Language", "Include in Bill"},
+                new Object[]{"Prestation", "Tarif (€)", "Quantité", "Total (€)", "Date Worked", "Language", "Include in Bill", "Unit by Day"}
+,
                 0
-        );
+
+
+        ) {
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                if (columnIndex == 6) return Boolean.class;   // last column = checkbox
+                return Object.class;
+            }
+        };
+
         table = new JTable(model);
         mainPanel.add(new JScrollPane(table), BorderLayout.CENTER);
 
@@ -101,10 +138,56 @@ public class BillingManagerPanel {
         inputPanel.add(exportButton);
         inputPanel.add(exportDayBill); // filler
 
+
         inputPanel.add(new JLabel("City Worked For:"));
         inputPanel.add(cityWorkedForField);
 
         mainPanel.add(inputPanel, BorderLayout.SOUTH);
+
+        rbAll.addActionListener(e -> {
+            for (int row = 0; row < model.getRowCount(); row++) {
+                model.setValueAt(true, row, 6);
+            }
+        });
+
+        rbNone.addActionListener(e -> {
+            for (int row = 0; row < model.getRowCount(); row++) {
+                model.setValueAt(false, row, 6);
+            }
+        });
+
+        rbAdhoc.addActionListener(e -> {
+            // no automatic changes
+        });
+
+        rbByHour.addActionListener(e -> {
+            for (int row = 0; row < model.getRowCount(); row++) {
+                String unitDay = (model.getValueAt(row, 7).toString());
+                model.setValueAt(!unitDay.equals("Yes"), row, 6);
+            }
+            exportDayBill.setSelected(false);
+        });
+
+
+        rbByDay.addActionListener(e -> {
+            for (int row = 0; row < model.getRowCount(); row++) {
+                String unitDay = (model.getValueAt(row, 7).toString());
+                model.setValueAt(unitDay.equals("Yes"), row, 6);
+            }
+            exportDayBill.setSelected(true);
+        });
+
+
+
+
+//        selectAll.addActionListener(e -> {
+//            boolean checked = selectAll.isSelected();
+//
+//            for (int row = 0; row < model.getRowCount(); row++) {
+//                model.setValueAt(checked, row, 6);   // column 6 = Include in Bill
+//            }
+//        });
+
 
         // ➕ Add row manually
         addButton.addActionListener(e -> {
@@ -118,7 +201,7 @@ public class BillingManagerPanel {
             try {
                 double tarif = Double.parseDouble(tarifText);
                 int qty = Integer.parseInt(qtyText);
-                model.addRow(new Object[]{service, tarif, qty, tarif * qty});
+                model.addRow(new Object[]{service, tarif, qty, tarif * qty, null, null, Boolean.TRUE});
                 prestationField.setText("");
                 tarifField.setText("");
                 qtyField.setText("");
@@ -140,13 +223,41 @@ public class BillingManagerPanel {
         });
 
         // 📤 Export to PDF
-        exportButton.addActionListener(e -> PDFCreator.exportPDF(
-                null,
-                System.currentTimeMillis() + "",
-                clientAdd,
-                myaddress,
-                ((SpinnerDateModel) billedOnSpinner.getModel()).getDate(), billIds
-        ));
+        exportButton.addActionListener(e -> {
+
+            HashMap<Integer, String> filtered = new HashMap<>();
+
+            int rowIndex = 0;
+            for (Integer billId : billIds.keySet()) {
+
+                Boolean include = (Boolean) model.getValueAt(rowIndex, 6);
+
+                if (include != null && include) {
+                    filtered.put(billId, billIds.get(billId));
+                }
+
+                rowIndex++;
+            }
+
+            PDFCreator.exportPDF(
+                    null,
+                    System.currentTimeMillis() + "",
+                    clientAdd,
+                    myaddress,
+                    ((SpinnerDateModel) billedOnSpinner.getModel()).getDate(),
+                    filtered,
+                    exportTest.isSelected()
+            );
+        });
+
+
+//        exportButton.addActionListener(e -> PDFCreator.exportPDF(
+//                null,
+//                System.currentTimeMillis() + "",
+//                clientAdd,
+//                myaddress,
+//                ((SpinnerDateModel) billedOnSpinner.getModel()).getDate(), billIds
+//        ));
 
         return mainPanel;
     }

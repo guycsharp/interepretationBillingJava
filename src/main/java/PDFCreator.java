@@ -55,7 +55,7 @@ public class PDFCreator {
      * @param address   the client’s address block (may contain "\n")
      * @param myaddress our own address block (may contain "\n")
      */
-    static void exportPDF(Component parent, String billNo, String address, String myaddress, Date billedOn, HashMap<Integer, String> billNos) {
+    static void exportPDF(Component parent, String billNo, String address, String myaddress, Date billedOn, HashMap<Integer, String> billNos, boolean exportTest) {
 
         // Pull in the rest of our invoice info from InvoiceApp
         String company = (String) BillingManagerPanel.companyComboBox.getSelectedItem();
@@ -136,7 +136,14 @@ public class PDFCreator {
 
             // STEP 7: Populate rows from the Swing table model
             double subTotal = 0;
+
             for (int i = 0; i < BillingManagerPanel.model.getRowCount(); i++) {
+
+                Boolean include = (Boolean) BillingManagerPanel.model.getValueAt(i, 6);
+                if (include == null || !include) {
+                    continue; // skip unchecked rows
+                }
+
                 // 1st column: service text + date + extra info
                 String serviceText =
                         BillingManagerPanel.model.getValueAt(i, 0).toString() +
@@ -144,21 +151,54 @@ public class PDFCreator {
                                 "\n" + BillingManagerPanel.model.getValueAt(i, 4).toString();
 
                 pdfTable.addCell(serviceText);
-
-                // 2nd column: unit price
-                pdfTable.addCell(BillingManagerPanel.model.getValueAt(i, 1).toString().replace(".", ",") + "0 €");
-
-                // 3rd column: quantity (days/hours)
-                String mins = BillingManagerPanel.model.getValueAt(i, 2).toString();
-                pdfTable.addCell(mins.substring(0, mins.indexOf('.')) + " minutes");
-
-                // 4th column: total price for this line
                 String lineTotal = BillingManagerPanel.model.getValueAt(i, 3).toString();
+                String mins = BillingManagerPanel.model.getValueAt(i, 2).toString();
+
+                if(BillingManagerPanel.exportDayBill.isSelected()) {
+                    // 2nd column: unit price
+                    pdfTable.addCell(lineTotal.replace(".", ",") + "0 €");
+                    // 3rd column: quantity
+                    pdfTable.addCell("1");
+                } else {
+                    // 2nd column: unit price
+                    pdfTable.addCell(BillingManagerPanel.model.getValueAt(i, 1).toString().replace(".", ",") + "0 €");
+                    // 3rd column: quantity
+                    pdfTable.addCell(mins.substring(0, mins.indexOf('.')) + " minutes");
+                }
+
+
+
+
+
+                // 4th column: total price
                 pdfTable.addCell(lineTotal.replace(".", ",") + "0 €");
 
-                // Accumulate for the sub-total
                 subTotal += Double.parseDouble(lineTotal);
             }
+
+//            for (int i = 0; i < BillingManagerPanel.model.getRowCount(); i++) {
+//                // 1st column: service text + date + extra info
+//                String serviceText =
+//                        BillingManagerPanel.model.getValueAt(i, 0).toString() +
+//                                " en " + BillingManagerPanel.model.getValueAt(i, 5).toString() +
+//                                "\n" + BillingManagerPanel.model.getValueAt(i, 4).toString();
+//
+//                pdfTable.addCell(serviceText);
+//
+//                // 2nd column: unit price
+//                pdfTable.addCell(BillingManagerPanel.model.getValueAt(i, 1).toString().replace(".", ",") + "0 €");
+//
+//                // 3rd column: quantity (days/hours)
+//                String mins = BillingManagerPanel.model.getValueAt(i, 2).toString();
+//                pdfTable.addCell(mins.substring(0, mins.indexOf('.')) + " minutes");
+//
+//                // 4th column: total price for this line
+//                String lineTotal = BillingManagerPanel.model.getValueAt(i, 3).toString();
+//                pdfTable.addCell(lineTotal.replace(".", ",") + "0 €");
+//
+//                // Accumulate for the sub-total
+//                subTotal += Double.parseDouble(lineTotal);
+//            }
 
 
             // STEP 8: Add a subtotal row under "Total (€)"
@@ -194,10 +234,12 @@ public class PDFCreator {
 
             // STEP 10: Append a signature image at the bottom-left
             try {
-                Image signature = Image.getInstance("resources/RojiSig.png");
-                signature.scaleToFit(100, 50);
-                signature.setAlignment(Element.ALIGN_LEFT);
-                doc.add(signature);
+                if(!exportTest) {
+                    Image signature = Image.getInstance("resources/RojiSig.png");
+                    signature.scaleToFit(100, 50);
+                    signature.setAlignment(Element.ALIGN_LEFT);
+                    doc.add(signature);
+                }
             } catch (Exception imgEx) {
                 // If the image fails to load, we still continue
                 imgEx.printStackTrace();
@@ -210,8 +252,9 @@ public class PDFCreator {
                     "PDF exported successfully to:\n" + path
             );
 
-
-            updateBillNosInBills(billNos, billNo);
+            if(!exportTest) {
+                updateBillNosInBills(billNos, billNo);
+            }
 
         } catch (Exception ex) {
             // Any exception along the way pops up an error dialog
